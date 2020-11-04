@@ -1,15 +1,15 @@
 # coding:utf-8
 import xlrd, xlsxwriter
 
-# 银普行业并筛选交易类型,增加笔数、金额、收益、产品、行业，并修改联营商户收入所属方
-# 二级行业为信用卡中心、交易类型为转账扣款的交易金额、笔数归零
+# 行业并筛选交易类型,增加笔数、金额、收益、产品、行业，并修改商户收入所属方
+# 二级行业为*、交易类型为*的交易金额、笔数归零
 # 业务数据汇总简表，取字段部分明细
 
 # 确定数据存储路径并打开源数据文件
 dateGet = input('请输入需汇总明细日期后缀：')
-totalPath = 'E:/数据/1-综合数据/TLT基础数据/每日明细/商户维度/'
-baseData1 = xlrd.open_workbook(totalPath + ('普金{}.xls'.format(dateGet)))
-baseData2 = xlrd.open_workbook(totalPath + ('银行{}.xls'.format(dateGet)))
+totalPath = 'E:/数据/商户维度/'
+baseData1 = xlrd.open_workbook(totalPath + ('普{}.xls'.format(dateGet)))
+baseData2 = xlrd.open_workbook(totalPath + ('银{}.xls'.format(dateGet)))
 pjTable1 = baseData1.sheet_by_name('成功交易统计')
 pjTable2 = baseData1.sheet_by_name('Sheet1')
 yhTable1 = baseData2.sheet_by_name('成功交易统计')
@@ -17,7 +17,7 @@ yhTable2 = baseData2.sheet_by_name('Sheet1')
 
 # 交易类型判断函数
 def tp_judge(val):
-    tp_path = 'E:/数据/1-综合数据/TLT基础数据/每日明细/商户维度/判断条件.xlsx'
+    tp_path = 'E:/数据/判断条件.xlsx'
     tp_data = xlrd.open_workbook(tp_path).sheet_by_name('交易类型')
     tp_list = []
     for i in range(tp_data.nrows):
@@ -43,7 +43,7 @@ for d in range((yhTable2.nrows - 1)):
     if d > 0:
         dataList2.append(yhTable2.row_values(d))
 
-# 修改验证明细商户号格式
+# 修改*明细商户号格式
 chg_col = dataList2[0].index('商户号')
 chg_col2 = dataList2[0].index('父商户号')
 for i in range(len(dataList2)):
@@ -53,21 +53,21 @@ for i in range(len(dataList2)):
 
 # 产品匹配函数
 def pr_match(type):
-    pr_path = 'E:/数据/1-综合数据/TLT基础数据/每日明细/商户维度/判断条件.xlsx'
+    pr_path = 'E:/数据/判断条件.xlsx'
     pr_list = xlrd.open_workbook(pr_path).sheet_by_name('交易类型')
     row_num = pr_list.col_values(0).index(type)
     return pr_list.col_values(1)[row_num]
 
 # 行业匹配函数
 def ind_match(ind):
-    ind_path = 'E:/数据/1-综合数据/TLT基础数据/每日明细/商户维度/判断条件.xlsx'
+    ind_path = 'E:/数据/判断条件.xlsx'
     ind_list = xlrd.open_workbook(ind_path).sheet_by_name('行业')
     row_num = ind_list.col_values(0).index(ind)
     return ind_list.col_values(1)[row_num]
 
 # 分润判断、匹配函数
 def prf_match(No):
-    prf_path = 'E:/数据/1-综合数据/TLT基础数据/每日明细/商户维度/判断条件.xlsx'
+    prf_path = 'E:/数据/判断条件.xlsx'
     prf_list = xlrd.open_workbook(prf_path).sheet_by_name('分润')
     No_list = []
     for row in range(prf_list.nrows):
@@ -96,13 +96,13 @@ for i in range(len(dataList1)):
     else:
         dataList1[i].append(dataList1[i][dataList1[0].index('成功笔数(不含跨行)')] + dataList1[i][dataList1[0].index('跨行发送银行笔数')])
         dataList1[i].append(dataList1[i][dataList1[0].index('成功金额(不含跨行)')] + dataList1[i][dataList1[0].index('跨行发送银行金额')])
-        if dataList1[i][ind_col1] == '信用卡中心' and dataList1[i][tp_col] == '转账扣款':
+        if dataList1[i][ind_col1] == '*' and dataList1[i][tp_col] == '*':
             dataList1[i][(dataList1[0].index('笔数'))] = 0
             dataList1[i][(dataList1[0].index('金额'))] = 0
         dataList1[i].append(dataList1[i][dataList1[0].index('手续费')] - dataList1[i][dataList1[0].index('成本')])
         dataList1[i].append(pr_match(dataList1[i][tp_col]))
         dataList1[i].append(ind_match(dataList1[i][ind_col1]))
-        if dataList1[i][bl_col1] == ('普惠金融服务事业部' or '银行服务事业部'):
+        if dataList1[i][bl_col1] == ('*事业部' or '*事业部'):
             if prf_match(dataList1[i][prf_col1]) is not None:
                 dataList1[i][bl_col1] = prf_match(dataList1[i][prf_col1])
 for i in range(len(dataList2)):
@@ -114,11 +114,11 @@ for i in range(len(dataList2)):
         dataList2[i].append(dataList2[i][dataList2[0].index('手续费')] - dataList2[i][dataList2[0].index('成本')])
         dataList2[i].append('验证')
         dataList2[i].append(ind_match(dataList2[i][ind_col2]))
-        if dataList2[i][bl_col2] == ('普惠金融服务事业部' or '银行服务事业部'):
+        if dataList2[i][bl_col2] == ('*事业部' or '*事业部'):
             if prf_match(dataList2[i][prf_col2]) is not None:
                 dataList2[i][bl_col2] = prf_match(dataList2[i][prf_col2])
 
-# 笔数
+
 sum_num = 0
 for i in range(len(dataList1)):
     if i > 0:
@@ -126,12 +126,12 @@ for i in range(len(dataList1)):
 for i in range(len(dataList2)):
     if i > 0:
         sum_num += dataList2[i][dataList2[0].index('交易笔数')]
-# 金额
+
 sum_amt = 0
 for i in range(len(dataList1)):
     if i > 0:
         sum_amt += dataList1[i][dataList1[0].index('金额')]
-# 手续费
+
 sum_inc = 0
 for i in range(len(dataList1)):
     if i > 0:
@@ -139,7 +139,7 @@ for i in range(len(dataList1)):
 for i in range(len(dataList2)):
     if i > 0:
         sum_inc += dataList2[i][dataList2[0].index('手续费')]
-# 收益
+
 sum_prf = 0
 for i in range(len(dataList1)):
     if i > 0:
@@ -172,7 +172,7 @@ for totalRow2, data in enumerate(totalRowData):
     totalSheet.write(totalRow2,1,data)
 
 # 所需部分字段明细
-field_path = 'E:/数据/1-综合数据/TLT基础数据/每日明细/商户维度/判断条件.xlsx'
+field_path = 'E:/数据/判断条件.xlsx'
 field_data = xlrd.open_workbook(field_path).sheet_by_name('字段')
 field_list1 = []
 field_list2 = []
