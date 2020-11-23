@@ -7,33 +7,17 @@ import xlrd, xlsxwriter
 
 # 确定数据存储路径并打开源数据文件
 
-
-def time_choose():
-    daily_path = 'E:/数据/1-原始数据表/TLT/每日明细/'
-    month_path = 'E:/数据/1-原始数据表/TLT/月度明细/商户维度/'  # 与日报表差异处
-    choose = input('请输入需汇总数据期间维度(d-日/m-月):')
-    if choose == 'd':
-        return daily_path
-    elif choose == 'm':
-        return month_path
-    else:
-        print('请选择 d/m')
-        time()
-
-
-totalPath = time_choose()
+totalPath = 'E:/数据/1-原始数据表/TLT/月度明细/商户维度/'
 savePath = 'E:/数据/2-数据源表/TLT/'
 dateGet = input('请输入需汇总明细日期后缀：')
-baseData1 = xlrd.open_workbook(totalPath + ('普金{}.xls'.format(dateGet)))
-baseData2 = xlrd.open_workbook(totalPath + ('银行{}.xls'.format(dateGet)))
-baseData3 = xlrd.open_workbook(totalPath + ('个人{}.xls'.format(dateGet)))
+baseData = xlrd.open_workbook(totalPath + dateGet + '.xls')
 
-pjTable1 = baseData1.sheet_by_name('成功交易统计')
-pjTable2 = baseData1.sheet_by_name('Sheet1')
-yhTable1 = baseData2.sheet_by_name('成功交易统计')
-yhTable2 = baseData2.sheet_by_name('Sheet1')
-grTable1 = baseData3.sheet_by_name('成功交易统计')
-grTable2 = baseData3.sheet_by_name('Sheet1')
+pjTable1 = baseData.sheet_by_name('普金')
+pjTable2 = baseData.sheet_by_name('普金验证')
+yhTable1 = baseData.sheet_by_name('银行')
+yhTable2 = baseData.sheet_by_name('银行验证')
+grTable1 = baseData.sheet_by_name('个人')
+grTable2 = baseData.sheet_by_name('个人验证')
 
 
 # 交易类型判断函数
