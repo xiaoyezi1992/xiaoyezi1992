@@ -11,8 +11,8 @@ docDate = input('请输入文件下载日期（例如20201030）:')
 readDataDate = input('请输入日报表统计日期:')
 afterDate = input('日报表统计日期的后一天：')
 beforeDate = input('日报表统计日期的前一天：')
-lastAmtDate = input('放款统计日期的前一天：') # 用于生意金已累计放款数据查询
-orgDate = input('上月末日期:')  # 用于统计月累计
+lastAmtDate = input('放款统计日期的前一天：')  # 用于生意金已累计放款数据查询
+orgDate = input('助贷用户上月末日期:')  # 用于统计助贷用户月累计
 
 total = pd.ExcelWriter(savePath + '日报表产品数据汇总{}.xlsx'.format(readDataDate))
 
@@ -30,10 +30,10 @@ df_loan_user.to_excel(total, '助贷用户')
 
 
 # 通联钱包数据
-wallet_user = pd.read_excel((dataPath + '表1个人会员信息期间汇总报表{}-{}.xls'.format(readDataDate,readDataDate)),
+wallet_user = pd.read_excel((dataPath + '表1个人会员信息期间汇总报表_{}_{}.xls'.format(readDataDate,readDataDate)),
                           sheet_name='个人会员信息期间汇总报表', header=1,index_col=0,
                             usecols=['分公司名称', '本期会员数', '新增会员数', '活跃用户数', '当年累计活跃用户数'])
-wallet_user2 = pd.read_excel((dataPath + '表1个人会员信息期间汇总报表{}-{}.xls'.format((readDataDate[0:6] + '01'),readDataDate)),
+wallet_user2 = pd.read_excel((dataPath + '表1个人会员信息期间汇总报表_{}_{}.xls'.format((readDataDate[0:6] + '01'),readDataDate)),
                           sheet_name='个人会员信息期间汇总报表', header=1,index_col=0,usecols=['分公司名称', '活跃用户数'])
 
 dict_wallet = {'新增会员数': wallet_user.loc['合计：', '新增会员数'],
@@ -106,7 +106,10 @@ for j in jk_data.index:
     judge_list_jk.append(j in list_jk)
 jk_amt = int(jk_data.loc[judge_list_jk].sum())
 
-dict_loan_amt = {'放款金额': (syj_amt + pos_amt + ck_amt + tx_amt + ft_amt + tl_amt + ds_amt + jk_amt)/10000}
+dict_loan_amt = {'总放款金额': (syj_amt + pos_amt + ck_amt + tx_amt + ft_amt + tl_amt + ds_amt + jk_amt)/10000,
+                 '生意金-网商贷': syj_amt/10000,
+                 '生意金-其他': (pos_amt + ck_amt + tx_amt + ft_amt + tl_amt)/10000,
+                 '到手': (ds_amt + jk_amt)/10000}
 df_loan_amt = pd.DataFrame.from_dict(dict_loan_amt, orient='index',columns=['数值'])
 df_loan_amt.to_excel(total, '助贷放款')
 total.save()
