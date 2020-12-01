@@ -1,7 +1,7 @@
 # coding:utf-8
 import xlrd, xlsxwriter
 
-# 三行业筛选交易类型,增加笔数、金额、收益、产品，并修改联营商户收入所属方（行业分类汇总后手工匹配）
+# 四行业筛选交易类型,增加笔数、金额、收益、产品、项目标签，并修改联营商户收入所属方（行业分类汇总后手工匹配）
 # 二级行业为信用卡中心、交易类型为转账扣款的交易金额、笔数归零；验证剔除快捷协议签约申请交易类型的交易明细
 # 业务数据汇总简表，取部分分析用字段明细
 
@@ -27,6 +27,7 @@ dateGet = input('请输入需汇总明细日期后缀：')
 baseData1 = xlrd.open_workbook(totalPath + ('普金{}.xls'.format(dateGet)))
 baseData2 = xlrd.open_workbook(totalPath + ('银行{}.xls'.format(dateGet)))
 baseData3 = xlrd.open_workbook(totalPath + ('个人{}.xls'.format(dateGet)))
+baseData4 = xlrd.open_workbook(totalPath + ('个人新{}.xls'.format(dateGet)))
 
 pjTable1 = baseData1.sheet_by_name('成功交易统计')
 pjTable2 = baseData1.sheet_by_name('Sheet1')
@@ -34,6 +35,8 @@ yhTable1 = baseData2.sheet_by_name('成功交易统计')
 yhTable2 = baseData2.sheet_by_name('Sheet1')
 grTable1 = baseData3.sheet_by_name('成功交易统计')
 grTable2 = baseData3.sheet_by_name('Sheet1')
+grNewTable1 = baseData4.sheet_by_name('成功交易统计')
+grNewTable2 = baseData4.sheet_by_name('Sheet1')
 
 
 # 交易类型判断函数
@@ -80,6 +83,17 @@ for f in range((grTable2.nrows - 1)):
             continue
         else:
             dataList2.append(grTable2.row_values(f))
+for g in range((grNewTable1.nrows - 1)):
+    if g > 0:
+        if tp_judge(grNewTable1.row_values(g)[grNewTable1.row_values(0).index('交易类型')]):
+            dataList1.append(grNewTable1.row_values(g))
+for h in range((grNewTable2.nrows - 1)):
+    if h > 0:
+        if grNewTable2.row_values(h)[grNewTable2.row_values(0).index('交易类型')] == '快捷协议签约申请':
+            continue
+        else:
+            dataList2.append(grNewTable2.row_values(h))
+
 
 # 修改验证明细商户号格式
 chg_col = dataList2[0].index('商户号')

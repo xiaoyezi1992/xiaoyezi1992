@@ -5,8 +5,8 @@ import pandas as pd
 # 将日报表各产品明细表按需汇总统计数据
 
 # 确定统计路径和时间
-dataPath = 'E:/数据/1-原始数据表/产品/'
-savePath = 'E:/数据/2-数据源表/产品/'
+dataPath = 'E:/data/1-原始数据表/产品/'
+savePath = 'E:/data/2-数据源表/产品/'
 docDate = input('请输入文件下载日期（例如20201030）:')
 readDataDate = input('请输入日报表统计日期:')
 afterDate = input('日报表统计日期的后一天：')

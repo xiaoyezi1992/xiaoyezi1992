@@ -1,7 +1,7 @@
 # coding:utf-8
 import xlrd, xlsxwriter
 
-# 三行业筛选交易类型,增加笔数、金额、收益、产品，并修改联营商户收入所属方（行业分类汇总后手工匹配）
+# 两行业筛选交易类型,增加笔数、金额、收益、产品，并修改联营商户收入所属方（行业分类汇总后手工匹配）
 # 二级行业为信用卡中心、交易类型为转账扣款的交易金额、笔数归零；验证剔除快捷协议签约申请交易类型的交易明细
 # 业务数据汇总简表，取部分分析用字段明细
 
@@ -9,8 +9,8 @@ import xlrd, xlsxwriter
 
 
 def time_choose():
-    daily_path = 'E:/data/1-原始数据表/TLT/每日明细/'
-    month_path = 'E:/data/1-原始数据表/TLT/月度明细/商户维度/'  # 与日报表差异处
+    daily_path = 'E:/数据/1-原始数据表/TLT/每日明细/'
+    month_path = 'E:/数据/1-原始数据表/TLT/月度明细/商户维度/'  # 与日报表差异处
     choose = input('请输入需汇总数据期间维度(d-日/m-月):')
     if choose == 'd':
         return daily_path
@@ -22,23 +22,21 @@ def time_choose():
 
 
 totalPath = time_choose()
-savePath = 'E:/data/2-数据源表/TLT/'
+savePath = 'E:/数据/2-数据源表/TLT/'
 dateGet = input('请输入需汇总明细日期后缀：')
 baseData1 = xlrd.open_workbook(totalPath + ('普金{}.xls'.format(dateGet)))
 baseData2 = xlrd.open_workbook(totalPath + ('银行{}.xls'.format(dateGet)))
-baseData3 = xlrd.open_workbook(totalPath + ('个人{}.xls'.format(dateGet)))
+
 
 pjTable1 = baseData1.sheet_by_name('成功交易统计')
 pjTable2 = baseData1.sheet_by_name('Sheet1')
 yhTable1 = baseData2.sheet_by_name('成功交易统计')
 yhTable2 = baseData2.sheet_by_name('Sheet1')
-grTable1 = baseData3.sheet_by_name('成功交易统计')
-grTable2 = baseData3.sheet_by_name('Sheet1')
 
 
 # 交易类型判断函数
 def tp_judge(val):
-    tp_path = 'E:/data/2-数据源表/判断条件.xlsx'
+    tp_path = 'E:/数据/2-数据源表/判断条件.xlsx'
     tp_data = xlrd.open_workbook(tp_path).sheet_by_name('交易类型')
     tp_list = []
     for r in range(tp_data.nrows):
@@ -70,16 +68,7 @@ for d in range((yhTable2.nrows - 1)):
             continue
         else:
             dataList2.append(yhTable2.row_values(d))
-for e in range((grTable1.nrows - 1)):
-    if e > 0:
-        if tp_judge(grTable1.row_values(e)[grTable1.row_values(0).index('交易类型')]):
-            dataList1.append(grTable1.row_values(e))
-for f in range((grTable2.nrows - 1)):
-    if f > 0:
-        if grTable2.row_values(f)[grTable2.row_values(0).index('交易类型')] == '快捷协议签约申请':
-            continue
-        else:
-            dataList2.append(grTable2.row_values(f))
+
 
 # 修改验证明细商户号格式
 chg_col = dataList2[0].index('商户号')
@@ -92,7 +81,7 @@ for i in range(len(dataList2)):
 
 # 产品匹配函数
 def pr_match(type):
-    pr_path = 'E:/data/2-数据源表/判断条件.xlsx'
+    pr_path = 'E:/数据/2-数据源表/判断条件.xlsx'
     pr_list = xlrd.open_workbook(pr_path).sheet_by_name('交易类型')
     row_num = pr_list.col_values(0).index(type)
     return pr_list.col_values(1)[row_num]
@@ -100,7 +89,7 @@ def pr_match(type):
 
 # 行业匹配函数
 def ind_match(num, ind):
-    ind_path = 'E:/data/2-数据源表/判断条件.xlsx'
+    ind_path = 'E:/数据/2-数据源表/判断条件.xlsx'
     ind_list = xlrd.open_workbook(ind_path).sheet_by_name('行业')
     if num in ind_list.col_values(3):
         row_num = ind_list.col_values(3).index(num)
@@ -109,19 +98,9 @@ def ind_match(num, ind):
         row_num = ind_list.col_values(6).index(ind)
         return ind_list.col_values(7)[row_num]
 
-
-# 项目标签匹配函数
-def project_match(num):
-    project_path = 'E:/data/2-数据源表/判断条件.xlsx'
-    project_list = xlrd.open_workbook(project_path).sheet_by_name('项目')
-    if num in project_list.col_values(0):
-        row_num = project_list.col_values(0).index(num)
-        return project_list.col_values(1)[row_num]
-
-
 # 分润判断、匹配函数
 def prf_match(num):
-    prf_path = 'E:/data/2-数据源表/判断条件.xlsx'
+    prf_path = 'E:/数据/2-数据源表/判断条件.xlsx'
     prf_list = xlrd.open_workbook(prf_path).sheet_by_name('分润')
     num_list = []
     for row in range(prf_list.nrows):
@@ -148,7 +127,6 @@ for i in range(len(dataList1)):
         dataList1[0].append('收益')
         dataList1[0].append('产品')
         dataList1[0].append('行业')
-        dataList1[0].append('项目标签')
     else:
         dataList1[i].append(dataList1[i][dataList1[0].index('成功笔数(不含跨行)')] +
                             dataList1[i][dataList1[0].index('跨行发送银行笔数')])
@@ -163,14 +141,12 @@ for i in range(len(dataList1)):
         if dataList1[i][bl_col1] == ('普惠金融服务事业部' or '银行服务事业部'):
             if prf_match(dataList1[i][prf_col1]) is not None:
                 dataList1[i][bl_col1] = prf_match(dataList1[i][prf_col1])
-        dataList1[i].append(project_match(dataList1[i][prf_col1]))
 
 for i in range(len(dataList2)):
     if i == 0:
         dataList2[0].append('收益')
         dataList2[0].append('产品')
         dataList2[0].append('行业')
-        dataList2[0].append('项目标签')
     else:
         dataList2[i].append(dataList2[i][dataList2[0].index('手续费')] - dataList2[i][dataList2[0].index('成本')])
         dataList2[i].append('验证')
@@ -178,42 +154,10 @@ for i in range(len(dataList2)):
         if dataList2[i][bl_col2] == ('普惠金融服务事业部' or '银行服务事业部'):
             if prf_match(dataList2[i][prf_col2]) is not None:
                 dataList2[i][bl_col2] = prf_match(dataList2[i][prf_col2])
-        dataList2[i].append(project_match(dataList2[i][prf_col2]))
 
-# 笔数
-sum_num = 0
-for i in range(len(dataList1)):
-    if i > 0:
-        sum_num += dataList1[i][dataList1[0].index('笔数')]
-for i in range(len(dataList2)):
-    if i > 0:
-        sum_num += dataList2[i][dataList2[0].index('交易笔数')]
-# 金额
-sum_amt = 0
-for i in range(len(dataList1)):
-    if i > 0:
-        sum_amt += dataList1[i][dataList1[0].index('金额')]
-# 手续费
-sum_inc = 0
-for i in range(len(dataList1)):
-    if i > 0:
-        sum_inc += dataList1[i][dataList1[0].index('手续费')]
-for i in range(len(dataList2)):
-    if i > 0:
-        sum_inc += dataList2[i][dataList2[0].index('手续费')]
-# 收益
-sum_prf = 0
-for i in range(len(dataList1)):
-    if i > 0:
-        sum_prf += dataList1[i][dataList1[0].index('收益')]
-for i in range(len(dataList2)):
-    if i > 0:
-        sum_prf += dataList2[i][dataList2[0].index('收益')]
-totalData = ['数据', sum_num/10000, sum_amt/100000000, sum_inc/10000, sum_prf/10000]
 
 # 开始写入新工作表
-totalExcel = xlsxwriter.Workbook(savePath + ('TLT数据源表{}.xlsx'.format(dateGet)))
-totalSheet = totalExcel.add_worksheet('业务数据汇总')
+totalExcel = xlsxwriter.Workbook(savePath + ('TLT数据源表(含个人)行业标签{}.xlsx'.format(dateGet)))
 partSheet = totalExcel.add_worksheet('有效字段明细汇总')
 detailSheet1 = totalExcel.add_worksheet('成功交易明细')
 detailSheet2 = totalExcel.add_worksheet('验证明细')
@@ -226,15 +170,9 @@ for row2, rowData2 in enumerate(dataList2):
     for col2, colData2 in enumerate(rowData2):
         detailSheet2.write(row2, col2, colData2)
 
-# 汇总数据写入汇总简表
-totalRowList = ['项目', '笔数', '金额', '手续费', '收益']
-for totalRow, project in enumerate(totalRowList):
-    totalSheet.write(totalRow, 0, project)
-for totalRow2, data in enumerate(totalData):
-    totalSheet.write(totalRow2, 1, data)
 
 # 所需部分字段明细
-field_path = 'E:/data/2-数据源表/判断条件.xlsx'
+field_path = 'E:/数据/2-数据源表/判断条件.xlsx'
 field_data = xlrd.open_workbook(field_path).sheet_by_name('字段')
 field_list1 = []
 field_list2 = []
