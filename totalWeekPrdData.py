@@ -1,17 +1,18 @@
 # coding:utf-8
 
 import pandas as pd
+import datetime
 # 将周报表各产品明细表按需汇总统计数据
 
 # 确定统计路径和时间
-dataPath = 'E:/数据/1-原始数据表/产品/'
-savePath = 'E:/数据/2-数据源表/产品/'
+dataPath = 'E:/data/1-原始数据表/产品/'
+savePath = 'E:/data/2-数据源表/产品/'
 docDate = input('请输入文件下载日期（例如20201030）:')
 beginDate = input('请输入周报表起始日期:')
-beforeBeginDate = input('周报表起始日期前一天：')
+beforeBeginDate = (datetime.datetime.strptime(beginDate, '%Y%m%d') + datetime.timedelta(days=-1)).strftime('%Y%m%d')
 readDataDate = input('请输入周报表截止日期:')
-afterDate = input('周报表报表截止日期的后一天：')
-orgDate = input('上月末日期:')  # 用于统计月累计
+afterDate = (datetime.datetime.strptime(readDataDate, '%Y%m%d') + datetime.timedelta(days=1)).strftime('%Y%m%d')
+orgDate = input('请输入截止日上月末日期:')  # 用于统计月累计
 total = pd.ExcelWriter(savePath + '周报表产品数据汇总{}-{}.xlsx'.format(beginDate, readDataDate))
 
 # 助贷用户数据

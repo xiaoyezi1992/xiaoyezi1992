@@ -1,6 +1,7 @@
 # coding:utf-8
 
 import pandas as pd
+import datetime
 
 # 将日报表各产品明细表按需汇总统计数据
 
@@ -9,24 +10,13 @@ dataPath = 'E:/data/1-原始数据表/产品/'
 savePath = 'E:/data/2-数据源表/产品/'
 docDate = input('请输入文件下载日期（例如20201030）:')
 readDataDate = input('请输入日报表统计日期:')
-afterDate = input('日报表统计日期的后一天：')
-beforeDate = input('日报表统计日期的前一天：')
-lastAmtDate = input('放款统计日期的前一天：')  # 用于生意金已累计放款数据查询
-orgDate = input('助贷用户上月末日期:')  # 用于统计助贷用户月累计
+afterDate = (datetime.datetime.strptime(readDataDate, '%Y%m%d') + datetime.timedelta(days=1)).strftime('%Y%m%d')
+beforeDate = (datetime.datetime.strptime(readDataDate, '%Y%m%d') + datetime.timedelta(days=-1)).strftime('%Y%m%d')
+lastAmtDate = (datetime.datetime.strptime(readDataDate, '%Y%m%d') + datetime.timedelta(days=-2)).strftime('%Y%m%d')
+# 用于生意金已累计放款数据查询
+orgDate = input('请输入统计日期的上月末日期:')  # 用于统计助贷用户月累计
 
 total = pd.ExcelWriter(savePath + '日报表产品数据汇总{}.xlsx'.format(readDataDate))
-
-# 助贷用户数据
-data_user = pd.read_excel((dataPath + '用户报表{}.xlsx'.format(docDate)), header=1, usecols=['客户手机号', '申请时间'])
-data_user['申请时间'] = pd.to_datetime(data_user['申请时间'])
-data_user.set_index('申请时间', inplace=True)
-data_user = pd.Series(data_user['客户手机号'],index=data_user.index)
-dict_loan_user = {'新增用户数': (len(set(list(data_user[afterDate:]))) - len(set(list(data_user[readDataDate:])))),
-                  '当日活跃用户': len(set(list(data_user[readDataDate]))),
-                  '当月累计活跃用户': len(set(list(data_user[afterDate: orgDate]))),
-                  '累计用户数': len(set(list(data_user[afterDate:])))}
-df_loan_user = pd.DataFrame.from_dict(dict_loan_user,orient='index',columns=['数值'])
-df_loan_user.to_excel(total, '助贷用户')
 
 
 # 通联钱包数据
@@ -43,6 +33,19 @@ dict_wallet = {'新增会员数': wallet_user.loc['合计：', '新增会员数'
                '注册会员数': wallet_user.loc['合计：', '本期会员数']}
 df_wallet = pd.DataFrame.from_dict(dict_wallet, orient='index',columns=['数值'])
 df_wallet.to_excel(total, '通联钱包')
+
+
+# 助贷用户数据
+data_user = pd.read_excel((dataPath + '用户报表{}.xlsx'.format(docDate)), header=1, usecols=['客户手机号', '申请时间'])
+data_user['申请时间'] = pd.to_datetime(data_user['申请时间'])
+data_user.set_index('申请时间', inplace=True)
+data_user = pd.Series(data_user['客户手机号'],index=data_user.index)
+dict_loan_user = {'新增用户数': (len(set(list(data_user[afterDate:]))) - len(set(list(data_user[readDataDate:])))),
+                  '当日活跃用户': len(set(list(data_user[readDataDate]))),
+                  '当月累计活跃用户': len(set(list(data_user[afterDate: orgDate]))),
+                  '累计用户数': len(set(list(data_user[afterDate:])))}
+df_loan_user = pd.DataFrame.from_dict(dict_loan_user,orient='index',columns=['数值'])
+df_loan_user.to_excel(total, '助贷用户')
 
 
 # 放款数据
@@ -90,9 +93,7 @@ syj_amt = int(syj_data.sum() - syj_data2.sum())
 ds_data = pd.read_excel((dataPath + '订单列表{}.xls'.format(readDataDate)), usecols=['订单状态', '订单金额', '期数'])
 ds_data.set_index(['订单状态'], inplace=True)
 list = ['待发货', '已发货', '备货中']
-judge_list = []
-for i in ds_data.index:
-    judge_list.append(i in list)
+judge_list = [i in list for i in ds_data.index]
 df_ds = ds_data.loc[judge_list]
 df_ds.set_index('期数', inplace=True)
 ds_amt = int(df_ds.loc[df_ds.index > 0, :].sum())
@@ -101,9 +102,7 @@ ds_amt = int(df_ds.loc[df_ds.index > 0, :].sum())
 jk_data = pd.read_excel((dataPath + '借款订单列表{}.xls'.format(readDataDate)), usecols=['订单状态', '借款金额'])
 jk_data.set_index(['订单状态'], inplace=True)
 list_jk = ['放款中', '分期还款中', '已完成']
-judge_list_jk = []
-for j in jk_data.index:
-    judge_list_jk.append(j in list_jk)
+judge_list_jk = [j in list_jk for j in jk_data.index]
 jk_amt = int(jk_data.loc[judge_list_jk].sum())
 
 dict_loan_amt = {'总放款金额': (syj_amt + pos_amt + ck_amt + tx_amt + ft_amt + tl_amt + ds_amt + jk_amt)/10000,
