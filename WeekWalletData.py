@@ -4,8 +4,8 @@ import pandas as pd
 # 将周报表各产品明细表按需汇总统计数据
 
 # 确定统计路径和时间
-dataPath = 'E:/数据/1-原始数据表/产品/'
-savePath = 'E:/数据/2-数据源表/产品/'
+dataPath = 'E:/data/1-原始数据表/产品/'
+savePath = 'E:/data/2-数据源表/产品/'
 beginDate = input('请输入周报表起始日期:')
 readDataDate = input('请输入周报表截止日期:')
 total = pd.ExcelWriter(savePath + '通联钱包数据汇总{}-{}.xlsx'.format(beginDate, readDataDate))

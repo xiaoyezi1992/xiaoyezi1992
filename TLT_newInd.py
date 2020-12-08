@@ -8,8 +8,8 @@ import xlrd, xlsxwriter
 
 # 确定数据存储路径并打开源数据文件
 def time_choose():
-    daily_path = 'E:/数据/1-原始数据表/TLT/每日明细/'
-    month_path = 'E:/数据/1-原始数据表/TLT/月度明细/商户维度/'  # 与日报表差异处
+    daily_path = 'E:/data/1-原始数据表/TLT/每日明细/'
+    month_path = 'E:/data/1-原始数据表/TLT/月度明细/商户维度/'  # 与日报表差异处
     choose = input('请输入需汇总数据期间维度(d-日/m-月):')
     if choose == 'd':
         return daily_path
@@ -21,7 +21,7 @@ def time_choose():
 
 
 totalPath = time_choose()
-savePath = 'E:/数据/2-数据源表/TLT/'
+savePath = 'E:/data/2-数据源表/TLT/'
 dateGet = input('请输入需汇总明细日期后缀：')
 baseData = xlrd.open_workbook(totalPath + dateGet + '.xls')
 Table1 = baseData.sheet_by_name('成功交易统计')
@@ -30,7 +30,7 @@ Table2 = baseData.sheet_by_name('Sheet1')
 
 # 交易类型判断函数
 def tp_judge(val):
-    tp_path = 'E:/数据/2-数据源表/判断条件.xlsx'
+    tp_path = 'E:/data/2-数据源表/判断条件.xlsx'
     tp_data = xlrd.open_workbook(tp_path).sheet_by_name('交易类型')
     tp_list = []
     for r in range(tp_data.nrows):
@@ -65,7 +65,7 @@ for i in range(len(dataList2)):
 
 # 产品匹配函数
 def pr_match(type):
-    pr_path = 'E:/数据/2-数据源表/判断条件.xlsx'
+    pr_path = 'E:/data/2-数据源表/判断条件.xlsx'
     pr_list = xlrd.open_workbook(pr_path).sheet_by_name('交易类型')
     row_num = pr_list.col_values(0).index(type)
     return pr_list.col_values(1)[row_num]
@@ -73,7 +73,7 @@ def pr_match(type):
 
 # 行业匹配函数
 # def ind_match(num, ind):
-#     ind_path = 'E:/数据/2-数据源表/判断条件.xlsx'
+#     ind_path = 'E:/data/2-数据源表/判断条件.xlsx'
 #     ind_list = xlrd.open_workbook(ind_path).sheet_by_name('行业')
 #     if num in ind_list.col_values(3):
 #         row_num = ind_list.col_values(3).index(num)
@@ -85,7 +85,7 @@ def pr_match(type):
 
 # 分润判断、匹配函数
 def prf_match(num):
-    prf_path = 'E:/数据/2-数据源表/判断条件.xlsx'
+    prf_path = 'E:/data/2-数据源表/判断条件.xlsx'
     prf_list = xlrd.open_workbook(prf_path).sheet_by_name('分润')
     num_list = []
     for row in range(prf_list.nrows):
@@ -198,7 +198,7 @@ for totalRow2, data in enumerate(totalData):
 
 
 # 所需部分字段明细
-field_path = 'E:/数据/2-数据源表/判断条件.xlsx'
+field_path = 'E:/data/2-数据源表/判断条件.xlsx'
 field_data = xlrd.open_workbook(field_path).sheet_by_name('字段')
 field_list1 = [field_data.cell_value(i, 0) for i in range(field_data.nrows)]
 field_list2 = [field_data.cell_value(i, 2) for i in range(field_data.nrows - 1)]

@@ -241,16 +241,16 @@ totalData = ['数据', sum_num/10000, sum_amt/100000000, sum_inc/10000, sum_prf/
 totalExcel = xlsxwriter.Workbook(savePath + ('TLT源表{}.xlsx'.format(dateGet)))
 totalSheet = totalExcel.add_worksheet('业务数据汇总')
 partSheet = totalExcel.add_worksheet('有效字段明细汇总')
-detailSheet1 = totalExcel.add_worksheet('成功交易明细')
-detailSheet2 = totalExcel.add_worksheet('验证明细')
+# detailSheet1 = totalExcel.add_worksheet('成功交易明细')
+# detailSheet2 = totalExcel.add_worksheet('验证明细')
 
 # 写入明细
-for row, rowData in enumerate(dataList1):
-    for col, colData in enumerate(rowData):
-        detailSheet1.write(row, col, colData)
-for row2, rowData2 in enumerate(dataList2):
-    for col2, colData2 in enumerate(rowData2):
-        detailSheet2.write(row2, col2, colData2)
+# for row, rowData in enumerate(dataList1):
+#     for col, colData in enumerate(rowData):
+#         detailSheet1.write(row, col, colData)
+# for row2, rowData2 in enumerate(dataList2):
+#     for col2, colData2 in enumerate(rowData2):
+#         detailSheet2.write(row2, col2, colData2)
 
 # 汇总数据写入汇总简表
 totalRowList = ['项目', '笔数', '金额', '手续费', '收益']
