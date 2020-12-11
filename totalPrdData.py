@@ -90,7 +90,7 @@ syj_data2 = pd.read_csv((dataPath + 'tonglian_jigou_{}.csv'.format(lastAmtDate))
 syj_amt = int(syj_data.sum() - syj_data2.sum())
 
 # 到手商城
-ds_data = pd.read_excel((dataPath + '订单列表{}.xls'.format(readDataDate)), usecols=['订单状态', '订单金额', '期数'])
+ds_data = pd.read_excel((dataPath + '订单列表{}.xls'.format(beforeDate)), usecols=['订单状态', '订单金额', '期数'])
 ds_data.set_index(['订单状态'], inplace=True)
 list = ['待发货', '已发货', '备货中']
 judge_list = [i in list for i in ds_data.index]
@@ -99,7 +99,7 @@ df_ds.set_index('期数', inplace=True)
 ds_amt = int(df_ds.loc[df_ds.index > 0, :].sum())
 
 # 到手现金借款
-jk_data = pd.read_excel((dataPath + '借款订单列表{}.xls'.format(readDataDate)), usecols=['订单状态', '借款金额'])
+jk_data = pd.read_excel((dataPath + '借款订单列表{}.xls'.format(beforeDate)), usecols=['订单状态', '借款金额'])
 jk_data.set_index(['订单状态'], inplace=True)
 list_jk = ['放款中', '分期还款中', '已完成']
 judge_list_jk = [j in list_jk for j in jk_data.index]

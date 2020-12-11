@@ -92,9 +92,7 @@ syj_amt = int(syj_data.sum() - syj_data2.sum())
 ds_data = pd.read_excel((dataPath + '订单列表{}-{}.xls'.format(beginDate, readDataDate)), usecols=['订单状态', '订单金额', '期数'])
 ds_data.set_index(['订单状态'], inplace=True)
 list = ['待发货', '已发货', '备货中']
-judge_list = []
-for i in ds_data.index:
-    judge_list.append(i in list)
+judge_list = [i in list for i in ds_data.index]
 df_ds = ds_data.loc[judge_list]
 df_ds.set_index('期数', inplace=True)
 ds_amt = int(df_ds.loc[df_ds.index > 0, :].sum())
@@ -103,9 +101,7 @@ ds_amt = int(df_ds.loc[df_ds.index > 0, :].sum())
 jk_data = pd.read_excel((dataPath + '借款订单列表{}-{}.xls'.format(beginDate, readDataDate)), usecols=['订单状态', '借款金额'])
 jk_data.set_index(['订单状态'], inplace=True)
 list_jk = ['放款中', '分期还款中', '已完成']
-judge_list_jk = []
-for j in jk_data.index:
-    judge_list_jk.append(j in list_jk)
+judge_list_jk = [j in list_jk for j in jk_data.index]
 jk_amt = int(jk_data.loc[judge_list_jk].sum())
 
 dict_loan_amt = {'放款金额': (syj_amt + pos_amt + ck_amt + tx_amt + ft_amt + tl_amt + ds_amt + jk_amt)/10000,
