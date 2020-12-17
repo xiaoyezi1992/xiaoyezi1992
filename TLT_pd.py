@@ -68,6 +68,7 @@ belonging = pd.read_excel(judgeDoc, sheet_name='分润', index_col='商户号')
 totalData = pd.merge(totalData, belonging, how='left', on='商户号')
 require_bl = (totalData['收入所属方'] == '个人业务事业部') & (totalData['归属分公司'] is not None)
 totalData.loc[require_bl, '收入所属方'] = totalData['归属分公司']
+totalData.loc[totalData['收入所属方'].isnull(), '收入所属方'] = '直营'
 del totalData['归属分公司']
 
 
