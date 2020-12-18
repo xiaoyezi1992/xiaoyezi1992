@@ -1,9 +1,11 @@
 # coding:utf-8
 
+# 将日报表各产品明细表按需汇总统计数据
+
+
 import pandas as pd
 import datetime
 
-# 将日报表各产品明细表按需汇总统计数据
 
 # 确定统计路径和时间
 dataPath = 'E:/data/1-原始数据表/产品/'
@@ -16,23 +18,43 @@ lastAmtDate = (datetime.datetime.strptime(readDataDate, '%Y%m%d') + datetime.tim
 # 用于生意金已累计放款数据查询
 orgDate = input('请输入统计日期的上月末日期:')  # 用于统计助贷用户月累计
 
-total = pd.ExcelWriter(savePath + '日报表产品数据汇总{}.xlsx'.format(readDataDate))
+lastData = pd.read_excel('E:/data/4-日报表&周报表/日报&周报202010/个人业务事业部日报表_{}.xlsx'.format(beforeDate),
+                         sheet_name='Sheet1', header=1,
+                         usecols=['区间', 'Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4', '月累计', '年累计'])
+total = pd.ExcelWriter(savePath + '日报表产品数据{}.xlsx'.format(readDataDate))
 
 
 # 通联钱包数据
 wallet_user = pd.read_excel((dataPath + '表1个人会员信息期间汇总报表_{}_{}.xls'.format(readDataDate,readDataDate)),
                           sheet_name='个人会员信息期间汇总报表', header=1,index_col=0,
                             usecols=['分公司名称', '本期会员数', '新增会员数', '活跃用户数', '当年累计活跃用户数'])
-wallet_user2 = pd.read_excel((dataPath + '表1个人会员信息期间汇总报表_{}_{}.xls'.format((readDataDate[0:6] + '01'),readDataDate)),
-                          sheet_name='个人会员信息期间汇总报表', header=1,index_col=0,usecols=['分公司名称', '活跃用户数'])
-
-dict_wallet = {'新增会员数': wallet_user.loc['合计：', '新增会员数'],
-               '活跃用户数': wallet_user.loc['合计：', '活跃用户数'],
-               '当月累计活跃用户数': wallet_user2.loc['合计：', '活跃用户数'],
-               '当年累计活跃用户数': wallet_user.loc['合计：', '当年累计活跃用户数'],
-               '注册会员数': wallet_user.loc['合计：', '本期会员数']}
-df_wallet = pd.DataFrame.from_dict(dict_wallet, orient='index',columns=['数值'])
-df_wallet.to_excel(total, '通联钱包')
+wallet_user2 = pd.read_excel((dataPath + '表1个人会员信息期间汇总报表_{}_{}.xls'.format((readDataDate[0:6] + '01'),
+                                                                           readDataDate)),
+                             sheet_name='个人会员信息期间汇总报表', header=1,index_col=0,usecols=['分公司名称', '活跃用户数'])
+dict_wallet = {'新增用户': int(wallet_user.loc['合计：', '新增会员数'].replace(',', '')),
+               '活跃用户': int(wallet_user.loc['合计：', '活跃用户数'].replace(',', ''))}
+df_wallet = pd.DataFrame.from_dict(dict_wallet, orient='index', columns=[readDataDate])
+df_wallet.index.name = '指标'
+df_wallet.loc['活跃用户', '月累计'] = int(wallet_user2.loc['合计：', '活跃用户数'].replace(',', ''))
+df_wallet.loc['活跃用户', '年累计'] = int(wallet_user.loc['合计：', '当年累计活跃用户数'].replace(',', ''))
+df_wallet.loc['总用户', '年累计'] = int(wallet_user.loc['合计：', '本期会员数'].replace(',', ''))
+if readDataDate[-4:] == '0101':
+    df_wallet.loc['新增用户', '月累计'] = int(wallet_user.loc['合计：', '新增会员数'].replace(',', ''))
+    df_wallet.loc['新增用户', '年累计'] = int(wallet_user.loc['合计：', '新增会员数'].replace(',', ''))
+elif readDataDate[-2:] == '01':
+    df_wallet.loc['新增用户', '月累计'] = int(wallet_user.loc['合计：', '新增会员数'].replace(',', ''))
+    df_wallet.loc['新增用户', '年累计'] = int(lastData.iloc[4, 5]) +\
+                                   int(wallet_user.loc['合计：', '新增会员数'].replace(',', ''))
+else:
+    df_wallet.loc['新增用户', '月累计'] = int(lastData.iloc[4, 4]) +\
+                                   int(wallet_user.loc['合计：', '新增会员数'].replace(',', ''))
+    df_wallet.loc['新增用户', '年累计'] = int(lastData.iloc[4, 5]) +\
+                                   int(wallet_user.loc['合计：', '新增会员数'].replace(',', ''))
+msgUser = input('请输入{}短信引流客户数：'.format(readDataDate))
+df_wallet.loc['短信引流', readDataDate] = int(msgUser)
+df_wallet.loc['短信引流', '月累计'] = int(lastData.iloc[9, 4]) + int(msgUser)
+df_wallet.loc['短信引流', '年累计'] = int(lastData.iloc[9, 5]) + int(msgUser)
+df_wallet.to_excel(total, '通联钱包用户数据')
 
 
 # 助贷用户数据
@@ -40,12 +62,25 @@ data_user = pd.read_excel((dataPath + '用户报表{}.xlsx'.format(docDate)), he
 data_user['申请时间'] = pd.to_datetime(data_user['申请时间'])
 data_user.set_index('申请时间', inplace=True)
 data_user = pd.Series(data_user['客户手机号'],index=data_user.index)
-dict_loan_user = {'新增用户数': (len(set(list(data_user[afterDate:]))) - len(set(list(data_user[readDataDate:])))),
-                  '当日活跃用户': len(set(list(data_user[readDataDate]))),
-                  '当月累计活跃用户': len(set(list(data_user[afterDate: orgDate]))),
-                  '累计用户数': len(set(list(data_user[afterDate:])))}
+dict_loan_user = {'新增用户': (len(set(list(data_user[afterDate:]))) - len(set(list(data_user[readDataDate:])))),
+                  '活跃用户': len(set(list(data_user[readDataDate])))}
 df_loan_user = pd.DataFrame.from_dict(dict_loan_user,orient='index',columns=['数值'])
-df_loan_user.to_excel(total, '助贷用户')
+df_loan_user.index.name = '指标'
+df_loan_user.loc['活跃用户', '月累计'] = len(set(list(data_user[afterDate: orgDate])))
+df_loan_user.loc['活跃用户', '年累计'] = len(set(list(data_user[afterDate:])))
+if readDataDate[-4:] == '0101':
+    df_loan_user.loc['新增用户', '月累计'] = (len(set(list(data_user[afterDate:]))) - len(set(list(data_user[readDataDate:]))))
+    df_loan_user.loc['新增用户', '年累计'] = (len(set(list(data_user[afterDate:]))) - len(set(list(data_user[readDataDate:]))))
+elif readDataDate[-2:] == '01':
+    df_loan_user.loc['新增用户', '月累计'] = (len(set(list(data_user[afterDate:]))) - len(set(list(data_user[readDataDate:]))))
+    df_loan_user.loc['新增用户', '年累计'] = int(lastData.iloc[7, 5]) +\
+                                   (len(set(list(data_user[afterDate:]))) - len(set(list(data_user[readDataDate:]))))
+else:
+    df_loan_user.loc['新增用户', '月累计'] = int(lastData.iloc[7, 4]) +\
+                                   (len(set(list(data_user[afterDate:]))) - len(set(list(data_user[readDataDate:]))))
+    df_loan_user.loc['新增用户', '年累计'] = int(lastData.iloc[7, 5]) +\
+                                   (len(set(list(data_user[afterDate:]))) - len(set(list(data_user[readDataDate:]))))
+df_loan_user.to_excel(total, '助贷用户数据')
 
 
 # 放款数据
@@ -104,11 +139,42 @@ jk_data.set_index(['订单状态'], inplace=True)
 list_jk = ['放款中', '分期还款中', '已完成']
 judge_list_jk = [j in list_jk for j in jk_data.index]
 jk_amt = int(jk_data.loc[judge_list_jk].sum())
+totalAmt = (syj_amt + pos_amt + ck_amt + tx_amt + ft_amt + tl_amt + ds_amt + jk_amt)/10000
+syjOtherAmt = (pos_amt + ck_amt + tx_amt + ft_amt + tl_amt)/10000
+dsTotalAmt = (ds_amt + jk_amt)/10000
 
-dict_loan_amt = {'总放款金额': (syj_amt + pos_amt + ck_amt + tx_amt + ft_amt + tl_amt + ds_amt + jk_amt)/10000,
+dict_loan_amt = {'新增放款（万）': totalAmt,
                  '生意金-网商贷': syj_amt/10000,
-                 '生意金-其他': (pos_amt + ck_amt + tx_amt + ft_amt + tl_amt)/10000,
-                 '到手': (ds_amt + jk_amt)/10000}
+                 '生意金-其他': syjOtherAmt,
+                 '到手': dsTotalAmt}
 df_loan_amt = pd.DataFrame.from_dict(dict_loan_amt, orient='index',columns=['数值'])
+df_loan_amt.index.name = '指标'
+if beforeDate[-4:] == '0101':
+    df_loan_amt.loc['新增放款（万）', '月累计'] = totalAmt
+    df_loan_amt.loc['生意金-网商贷', '月累计'] = syj_amt/10000
+    df_loan_amt.loc['生意金-其他', '月累计'] = syjOtherAmt
+    df_loan_amt.loc['到手', '月累计'] = dsTotalAmt
+    df_loan_amt.loc['新增放款（万）', '年累计'] = totalAmt
+    df_loan_amt.loc['生意金-网商贷', '年累计'] = syj_amt/10000
+    df_loan_amt.loc['生意金-其他', '年累计'] = syjOtherAmt
+    df_loan_amt.loc['到手', '年累计'] = dsTotalAmt
+elif beforeDate[-2:] == '01':
+    df_loan_amt.loc['新增放款（万）', '月累计'] = totalAmt
+    df_loan_amt.loc['生意金-网商贷', '月累计'] = syj_amt/10000
+    df_loan_amt.loc['生意金-其他', '月累计'] = syjOtherAmt
+    df_loan_amt.loc['到手', '月累计'] = dsTotalAmt
+    df_loan_amt.loc['新增放款（万）', '年累计'] = lastData.iloc[10, 5] + totalAmt
+    df_loan_amt.loc['生意金-网商贷', '年累计'] = lastData.iloc[11, 5] + syj_amt/10000
+    df_loan_amt.loc['生意金-其他', '年累计'] = lastData.iloc[12, 5] + syjOtherAmt
+    df_loan_amt.loc['到手', '年累计'] = lastData.iloc[13, 5] + dsTotalAmt
+else:
+    df_loan_amt.loc['新增放款（万）', '月累计'] = lastData.iloc[10, 4] + totalAmt
+    df_loan_amt.loc['生意金-网商贷', '月累计'] = lastData.iloc[11, 4] + syj_amt/10000
+    df_loan_amt.loc['生意金-其他', '月累计'] = lastData.iloc[12, 4] + syjOtherAmt
+    df_loan_amt.loc['到手', '月累计'] = lastData.iloc[13, 4] + dsTotalAmt
+    df_loan_amt.loc['新增放款（万）', '年累计'] = lastData.iloc[10, 5] + totalAmt
+    df_loan_amt.loc['生意金-网商贷', '年累计'] = lastData.iloc[11, 5] + syj_amt/10000
+    df_loan_amt.loc['生意金-其他', '年累计'] = lastData.iloc[12, 5] + syjOtherAmt
+    df_loan_amt.loc['到手', '年累计'] = lastData.iloc[13, 5] + dsTotalAmt
 df_loan_amt.to_excel(total, '助贷放款')
 total.save()
