@@ -178,3 +178,5 @@ else:
     df_loan_amt.loc['到手', '年累计'] = lastData.iloc[13, 5] + dsTotalAmt
 df_loan_amt.to_excel(total, '助贷放款')
 total.save()
+
+print('完成！' * 10)

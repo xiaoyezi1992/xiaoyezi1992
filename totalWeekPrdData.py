@@ -111,3 +111,5 @@ dict_loan_amt = {'放款金额': (syj_amt + pos_amt + ck_amt + tx_amt + ft_amt +
 df_loan_amt = pd.DataFrame.from_dict(dict_loan_amt, orient='index',columns=['数值'])
 df_loan_amt.to_excel(total, '助贷放款')
 total.save()
+
+print('数据汇总完成！')

@@ -1,16 +1,18 @@
-# coding:utf-8
-import xlrd, xlsxwriter
+# _*_coding:utf-8_*_
 
-# 筛选交易类型,验证剔除快捷协议签约申请交易类型的交易明细
-# 增加笔数、金额、收益、产品、项目标签，并修改联营商户收入所属方（行业分类汇总后手工匹配）
-# 二级行业为卡中心、交易类型为转账扣款的交易金额、笔数归零
-# 业务数据汇总简表，取部分分析用字段明细
+# 筛选交易类型,验证剔除快捷协议签约申请交易类型的交易明细，取部分分析用字段明细
+# 增加笔数、金额、产品、收益、项目标签、商户简称，并修改联营商户收入所属方
+# 二级行业为卡中心、交易类型为转账扣款的交易金额、笔数归零；
 
 
-# 确定数据存储路径并打开源数据文件
-def time_choose():
+import pandas as pd
+import datetime
+
+
+# 交易期间选择函数
+def period_choose():
     daily_path = 'E:/data/1-原始数据表/TLT/每日明细/'
-    month_path = 'E:/data/1-原始数据表/TLT/月度明细/商户维度/'  # 与日报表差异处
+    month_path = 'E:/data/1-原始数据表/TLT/月度明细/商户维度/'
     choose = input('请输入需汇总数据期间维度(d-日/m-月):')
     if choose == 'd':
         return daily_path
@@ -18,215 +20,140 @@ def time_choose():
         return month_path
     else:
         print('请选择 d/m')
-        time_choose()
+        period_choose()
 
 
-totalPath = time_choose()
+# 读取所需明细
+totalPath = period_choose()
 savePath = 'E:/data/2-数据源表/TLT/'
-dateGet = input('请输入需汇总明细日期后缀：')
-baseData = xlrd.open_workbook(totalPath + ('{}.xls'.format(dateGet)))
-table1 = baseData.sheet_by_name('成功交易统计')
-table2 = baseData.sheet_by_name('Sheet1')
+judgeDoc = 'E:/data/2-数据源表/判断条件.xlsx'
+dateGet = input('请输入需处理交易明细日期：')
+transData = pd.read_excel(totalPath + '{}.xls'.format(dateGet), sheet_name='成功交易统计',
+                          usecols=['日期', '商户名称', '商户号', '父商户号', '收入所属方', '一级行业', '二级行业', '交易类型',
+                                   '成功笔数(不含跨行)', '成功金额(不含跨行)', '跨行发送银行笔数', '跨行发送银行金额',
+                                   '手续费', '成本'])
+verifyData = pd.read_excel(totalPath + '{}.xls'.format(dateGet), sheet_name='Sheet1',
+                           usecols=['日期', '商户名称', '商户号', '父商户号', '收入所属方', '一级行业', '二级行业', '交易类型',
+                                    '交易笔数', '手续费', '成本'])
 
 
-# 交易类型判断函数
-def tp_judge(val):
-    tp_path = 'E:/data/2-数据源表/判断条件.xlsx'
-    tp_data = xlrd.open_workbook(tp_path).sheet_by_name('交易类型')
-    tp_list = []
-    for r in range(tp_data.nrows):
-        tp_list.append(tp_data.cell_value(r, 0))
-    return val in tp_list
+# 剔除不纳入统计的交易类型
+prType = pd.read_excel(judgeDoc, sheet_name='交易类型', index_col='交易类型')
+transData = transData[transData['交易类型'].isin(prType.index)]
+verifyData = verifyData[verifyData['交易类型'] != '快捷协议签约申请']
 
 
-# 筛选交易类型
-dataList1 =[]
-dataList2 =[]
-for a in range((table1.nrows - 1)):
-    if a == 0:
-        dataList1.append(table1.row_values(a))
+# 增加笔数、金额、产品列
+transData['笔数'] = transData['成功笔数(不含跨行)'] + transData['跨行发送银行笔数']
+transData['金额'] = transData['成功金额(不含跨行)'] + transData['跨行发送银行金额']
+transData = pd.merge(transData, prType, how='left', on='交易类型')
+verifyData['笔数'] = verifyData['交易笔数']
+verifyData['金额'] = 0
+verifyData['产品'] = '验证'
+transData1 = transData[['日期', '商户名称', '商户号', '父商户号', '收入所属方', '一级行业', '二级行业', '交易类型',
+                       '手续费', '成本', '笔数', '金额', '产品']]
+verifyData1 = verifyData[['日期', '商户名称', '商户号', '父商户号', '收入所属方', '一级行业', '二级行业', '交易类型',
+                         '手续费', '成本', '笔数', '金额', '产品']]
+
+totalData = pd.concat([transData1, verifyData1])
+
+
+# 卡中心、转账扣款交易剔除重复笔数和金额
+require_db = (totalData.loc[:, '二级行业'] == '卡中心') & (totalData.loc[:, '交易类型'] == '转账扣款')
+totalData.loc[require_db, '笔数'] = 0
+totalData.loc[require_db, '金额'] = 0
+
+
+# 修改收入所属方
+belonging = pd.read_excel(judgeDoc, sheet_name='分润', index_col='商户号')
+totalData = pd.merge(totalData, belonging, how='left', on='商户号')
+require_bl = (totalData['收入所属方'] == '个人业务事业部') & (totalData['归属分公司'] is not None)
+totalData.loc[require_bl, '收入所属方'] = totalData['归属分公司']
+totalData.loc[totalData['收入所属方'].isnull(), '收入所属方'] = '直营'
+del totalData['归属分公司']
+
+
+# 增加项目标签、收益
+prj = pd.read_excel(judgeDoc, sheet_name='项目', index_col='商户号')
+totalData = pd.merge(totalData, prj, how='left', on='商户号')
+totalData['收益'] = totalData['手续费'] - totalData['成本']
+
+
+# 增加商户简称
+def cut(x):
+    if '卡中心' in x:
+        return x[0:x.find('卡中心') + 3]
+    elif '分行' in x:
+        return x[0:x.find('分行') + 2]
+    elif '公司' in x:
+        return x[0:x.find('公司') + 2]
+    elif '（' in x:
+        return x[0:x.find('（')]
     else:
-        if tp_judge(table1.row_values(a)[table1.row_values(0).index('交易类型')]):
-            dataList1.append(table1.row_values(a))
-for b in range((table2.nrows - 1)):
-    if table2.row_values(b)[table2.row_values(0).index('交易类型')] == '快捷协议签约申请':
-        continue
-    else:
-        dataList2.append(table2.row_values(b))
+        return x
 
 
-# 修改验证明细商户号格式
-chg_col = dataList2[0].index('商户号')
-chg_col2 = dataList2[0].index('父商户号')
-for i in range(len(dataList2)):
-    if i > 0:
-        dataList2[i][chg_col] = str(int(dataList2[i][chg_col]))
-        dataList2[i][chg_col2] = str(int(dataList2[i][chg_col2]))
+totalData['商户简称'] = totalData['商户名称'].astype(str).map(cut)
 
 
-# 产品匹配函数
-def pr_match(tp):
-    pr_path = 'E:/data/2-数据源表/判断条件.xlsx'
-    pr_list = xlrd.open_workbook(pr_path).sheet_by_name('交易类型')
-    row_num = pr_list.col_values(0).index(tp)
-    return pr_list.col_values(1)[row_num]
+# 调整部分特殊商户简称
+totalData.loc[totalData['商户名称'] == '（360借条1）五矿国际信托有限公司', '商户简称'] = '（360借条）五矿国际信托有限公司'
+totalData.loc[totalData['商户名称'] == '（360借条2）五矿国际信托有限公司', '商户简称'] = '（360借条）五矿国际信托有限公司'
+totalData.loc[totalData['商户名称'] == '中国民生银行股份有限公司信用卡中心', '商户简称'] = '民生银行信用卡中心'
+totalData.loc[totalData['商户名称'] == '实时还款', '商户简称'] = '浦东发展银行信用卡中心'
 
 
-# 项目标签匹配函数
-def project_match(num):
-    project_path = 'E:/data/2-数据源表/判断条件.xlsx'
-    project_list = xlrd.open_workbook(project_path).sheet_by_name('项目')
-    if num in project_list.col_values(0):
-        row_num = project_list.col_values(0).index(num)
-        return project_list.col_values(1)[row_num]
+# 商户号类型改为字符串
+totalData['商户号'] = totalData['商户号'].astype(str)
+totalData['父商户号'] = totalData['父商户号'].astype(str)
 
 
-# 分润判断、匹配函数
-def prf_match(num):
-    prf_path = 'E:/data/2-数据源表/判断条件.xlsx'
-    prf_list = xlrd.open_workbook(prf_path).sheet_by_name('分润')
-    num_list = []
-    for row in range(prf_list.nrows):
-        if row > 0:
-            num_list.append(prf_list.cell_value(row, 0))
-    if num in num_list:
-        row_num = prf_list.col_values(0).index(num)
-        return prf_list.col_values(2)[row_num]
+# 剔除合计行数据
+totalData = totalData[~(totalData['商户名称'].isnull())]
 
-
-# 增加笔数、金额、收益、产品列，修改收入所属方
-tp_col = dataList1[0].index('交易类型')
-ind_col1 = dataList1[0].index('二级行业')
-ind_col2 = dataList2[0].index('二级行业')
-prf_col1 = dataList1[0].index('商户号')
-bl_col1 = dataList1[0].index('收入所属方')
-prf_col2 = dataList2[0].index('商户号')
-bl_col2 = dataList2[0].index('收入所属方')
-
-for i in range(len(dataList1)):
-    if i == 0:
-        dataList1[0].append('笔数')
-        dataList1[0].append('金额')
-        dataList1[0].append('收益')
-        dataList1[0].append('产品')
-        dataList1[0].append('项目标签')
-    else:
-        dataList1[i].append(dataList1[i][dataList1[0].index('成功笔数(不含跨行)')] +
-                            dataList1[i][dataList1[0].index('跨行发送银行笔数')])
-        dataList1[i].append(dataList1[i][dataList1[0].index('成功金额(不含跨行)')] +
-                            dataList1[i][dataList1[0].index('跨行发送银行金额')])
-        if dataList1[i][ind_col1] == '卡中心' and dataList1[i][tp_col] == '转账扣款':
-            dataList1[i][(dataList1[0].index('笔数'))] = 0
-            dataList1[i][(dataList1[0].index('金额'))] = 0
-        dataList1[i].append(dataList1[i][dataList1[0].index('手续费')] - dataList1[i][dataList1[0].index('成本')])
-        dataList1[i].append(pr_match(dataList1[i][tp_col]))
-        if dataList1[i][bl_col1] == ('普惠金融服务事业部' or '银行服务事业部'):
-            if prf_match(dataList1[i][prf_col1]) is not None:
-                dataList1[i][bl_col1] = prf_match(dataList1[i][prf_col1])
-        elif dataList1[i][bl_col1] == '个人业务事业部':
-            if prf_match(dataList1[i][prf_col1]) is not None:
-                dataList1[i][bl_col1] = prf_match(dataList1[i][prf_col1])
-        if dataList1[i][bl_col1] == '普惠金融服务事业部':
-            dataList1[i][bl_col1] = '直营'
-        elif dataList1[i][bl_col1] == '银行服务事业部':
-            dataList1[i][bl_col1] = '直营'
-        elif dataList1[i][bl_col1] == '个人服务事业部':
-            dataList1[i][bl_col1] = '直营'
-        elif dataList1[i][bl_col1] == '个人业务事业部':
-            dataList1[i][bl_col1] = '直营'
-        dataList1[i].append(project_match(dataList1[i][prf_col1]))
-
-for i in range(len(dataList2)):
-    if i == 0:
-        dataList2[0].append('收益')
-        dataList2[0].append('产品')
-        dataList2[0].append('项目标签')
-    else:
-        dataList2[i].append(dataList2[i][dataList2[0].index('手续费')] - dataList2[i][dataList2[0].index('成本')])
-        dataList2[i].append('验证')
-        if dataList2[i][bl_col2] == ('普惠金融服务事业部' or '银行服务事业部'):
-            if prf_match(dataList2[i][prf_col2]) is not None:
-                dataList2[i][bl_col2] = prf_match(dataList2[i][prf_col2])
-        elif dataList2[i][bl_col2] == '个人业务事业部':
-            if prf_match(dataList2[i][prf_col2]) is not None:
-                dataList2[i][bl_col2] = prf_match(dataList2[i][prf_col2])
-        if dataList2[i][bl_col2] == '普惠金融服务事业部':
-            dataList2[i][bl_col2] = '直营'
-        elif dataList2[i][bl_col2] == '银行服务事业部':
-            dataList2[i][bl_col2] = '直营'
-        elif dataList2[i][bl_col2] == '个人服务事业部':
-            dataList2[i][bl_col2] = '直营'
-        elif dataList2[i][bl_col2] == '个人业务事业部':
-            dataList2[i][bl_col2] = '直营'
-        dataList2[i].append(project_match(dataList2[i][prf_col2]))
-
-# 笔数
-sum_num = 0
-for i in range(len(dataList1)):
-    if i > 0:
-        sum_num += dataList1[i][dataList1[0].index('笔数')]
-for i in range(len(dataList2)):
-    if i > 0:
-        sum_num += dataList2[i][dataList2[0].index('交易笔数')]
-# 金额
-sum_amt = 0
-for i in range(len(dataList1)):
-    if i > 0:
-        sum_amt += dataList1[i][dataList1[0].index('金额')]
-# 手续费
-sum_inc = 0
-for i in range(len(dataList1)):
-    if i > 0:
-        sum_inc += dataList1[i][dataList1[0].index('手续费')]
-for i in range(len(dataList2)):
-    if i > 0:
-        sum_inc += dataList2[i][dataList2[0].index('手续费')]
-# 收益
-sum_prf = 0
-for i in range(len(dataList1)):
-    if i > 0:
-        sum_prf += dataList1[i][dataList1[0].index('收益')]
-for i in range(len(dataList2)):
-    if i > 0:
-        sum_prf += dataList2[i][dataList2[0].index('收益')]
-totalData = ['数据', sum_num/10000, sum_amt/100000000, sum_inc/10000, sum_prf/10000]
-
-# 开始写入新工作表
-totalExcel = xlsxwriter.Workbook(savePath + ('TLT源表{}.xlsx'.format(dateGet)))
-totalSheet = totalExcel.add_worksheet('业务数据汇总')
-partSheet = totalExcel.add_worksheet('有效字段明细汇总')
-# detailSheet1 = totalExcel.add_worksheet('成功交易明细')
-# detailSheet2 = totalExcel.add_worksheet('验证明细')
-
-# 写入明细
-# for row, rowData in enumerate(dataList1):
-#     for col, colData in enumerate(rowData):
-#         detailSheet1.write(row, col, colData)
-# for row2, rowData2 in enumerate(dataList2):
-#     for col2, colData2 in enumerate(rowData2):
-#         detailSheet2.write(row2, col2, colData2)
 
 # 汇总数据写入汇总简表
-totalRowList = ['项目', '笔数', '金额', '手续费', '收益']
-for totalRow, project in enumerate(totalRowList):
-    totalSheet.write(totalRow, 0, project)
-for totalRow2, data in enumerate(totalData):
-    totalSheet.write(totalRow2, 1, data)
+total_dic = {'笔数': totalData['笔数'].sum() / 10000, '金额': totalData['金额'].sum() / 100000000,
+             '手续费': totalData['手续费'].sum() / 10000, '收益': totalData['收益'].sum() / 10000}
+total_df = pd.DataFrame.from_dict(total_dic, orient='index', columns=['数值'])
+total_df.index.name = '指标'
+if len(dateGet) == 8:  # 日报表增加累计数据
+    lastDate = (datetime.datetime.strptime(dateGet, '%Y%m%d') + datetime.timedelta(days=-1)).strftime('%Y%m%d')
+    lastData = pd.read_excel('E:/data/4-日报表&周报表/日报&周报202010/个人业务事业部日报表_{}.xlsx'.format(lastDate),
+                             sheet_name='Sheet1', header=1, usecols=['区间', '月累计', '年累计'], nrows=4, index_col='区间')
+    if dateGet[-4:] == '0101':
+        total_df.loc['笔数', '月累计'] = totalData['笔数'].sum() / 10000
+        total_df.loc['金额', '月累计'] = totalData['金额'].sum() / 100000000
+        total_df.loc['手续费', '月累计'] = totalData['手续费'].sum() / 10000
+        total_df.loc['收益', '月累计'] = totalData['收益'].sum() / 10000
+        total_df.loc['笔数', '年累计'] = totalData['笔数'].sum() / 10000
+        total_df.loc['金额', '年累计'] = totalData['金额'].sum() / 100000000
+        total_df.loc['手续费', '年累计'] = totalData['手续费'].sum() / 10000
+        total_df.loc['收益', '年累计'] = totalData['收益'].sum() / 10000
+    elif dateGet[-2:] == '01':
+        total_df.loc['笔数', '月累计'] = totalData['笔数'].sum() / 10000
+        total_df.loc['金额', '月累计'] = totalData['金额'].sum() / 100000000
+        total_df.loc['手续费', '月累计'] = totalData['手续费'].sum() / 10000
+        total_df.loc['收益', '月累计'] = totalData['收益'].sum() / 10000
+        total_df.loc['笔数', '年累计'] = lastData.loc['交易笔数（万）', '年累计'] + totalData['笔数'].sum() / 10000
+        total_df.loc['金额', '年累计'] = lastData.loc['交易金额（亿）', '年累计'] + totalData['笔数'].sum() / 100000000
+        total_df.loc['手续费', '年累计'] = lastData.loc['手续费（万）', '年累计'] + totalData['笔数'].sum() / 10000
+        total_df.loc['收益', '年累计'] = lastData.loc['收益（剔除渠道成本/万）', '年累计'] + totalData['笔数'].sum() / 10000
+    else:
+        total_df.loc['笔数', '月累计'] = lastData.loc['交易笔数（万）', '月累计'] + totalData['笔数'].sum() / 10000
+        total_df.loc['金额', '月累计'] = lastData.loc['交易金额（亿）', '月累计'] + totalData['金额'].sum() / 100000000
+        total_df.loc['手续费', '月累计'] = lastData.loc['手续费（万）', '月累计'] + totalData['手续费'].sum() / 10000
+        total_df.loc['收益', '月累计'] = lastData.loc['收益（剔除渠道成本/万）', '月累计'] + totalData['收益'].sum() / 10000
+        total_df.loc['笔数', '年累计'] = lastData.loc['交易笔数（万）', '年累计'] + totalData['笔数'].sum() / 10000
+        total_df.loc['金额', '年累计'] = lastData.loc['交易金额（亿）', '年累计'] + totalData['金额'].sum() / 100000000
+        total_df.loc['手续费', '年累计'] = lastData.loc['手续费（万）', '年累计'] + totalData['手续费'].sum() / 10000
+        total_df.loc['收益', '年累计'] = lastData.loc['收益（剔除渠道成本/万）', '年累计'] + totalData['收益'].sum() / 10000
 
-# 所需部分字段明细
-field_path = 'E:/data/2-数据源表/判断条件.xlsx'
-field_data = xlrd.open_workbook(field_path).sheet_by_name('字段')
-field_list1 = []
-field_list2 = []
-for i in range(field_data.nrows):
-    field_list1.append(field_data.cell_value(i, 0))
-for i in range(field_data.nrows - 1):
-    field_list2.append(field_data.cell_value(i, 2))
 
-for i in range(len(dataList1)):
-    for field, j in zip(field_list1,range(len(field_list1))):
-        partSheet.write(i, j, dataList1[i][dataList1[0].index(field)])
-for i in range(1, len(dataList2)):
-    for field2, j in zip(field_list2, range(len(field_list2))):
-        partSheet.write(i + len(dataList1) - 1, j, dataList2[i][dataList2[0].index(field2)])
-totalExcel.close()
+# 数据存入电子表格
+docSave = pd.ExcelWriter(savePath + 'TLT源表_{}.xlsx'.format(dateGet))
+total_df.to_excel(docSave, '汇总数据')
+totalData.to_excel(docSave, '汇总明细')
+docSave.save()
+
+print('数据处理完成！')
