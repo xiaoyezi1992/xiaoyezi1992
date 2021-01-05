@@ -208,7 +208,7 @@ totalData['父商户号'] = totalData['父商户号'].map(deal_str)
 # 汇总数据写入汇总简表
 total_dic = {'笔数': totalData['笔数'].sum() / 10000, '金额': totalData['金额'].sum() / 100000000,
              '手续费': totalData['手续费'].sum() / 10000, '收益': totalData['收益'].sum() / 10000}
-total_df = pd.DataFrame.from_dict(total_dic, orient='index', columns=['数值'])
+total_df = pd.DataFrame.from_dict(total_dic, orient='index', columns=[dateGet])
 total_df.index.name = '指标'
 if len(dateGet) == 8:  # 日报表增加累计数据
     lastDate = (datetime.datetime.strptime(dateGet, '%Y%m%d') + datetime.timedelta(days=-1)).strftime('%Y%m%d')
@@ -249,4 +249,4 @@ total_df.to_excel(docSave, '汇总数据')
 totalData.to_excel(docSave, '汇总明细')
 docSave.save()
 
-print('完成！' * 10)
+print('完成！\n' * 10)
