@@ -12,7 +12,6 @@ import datetime
 docDate = input('请输入文件下载日期（例如20201030）:')
 countDate = input('请输入日报表统计日期:')
 tlt_path = 'E:/data/1-原始数据表/TLT/每日明细/'
-msgUser = input('请输入{}短信引流客户数：'.format(countDate))
 afterDate = (datetime.datetime.strptime(countDate, '%Y%m%d') + datetime.timedelta(days=1)).strftime('%Y%m%d')
 beforeDate = (datetime.datetime.strptime(countDate, '%Y%m%d') + datetime.timedelta(days=-1)).strftime('%Y%m%d')
 lastAmtDate = (datetime.datetime.strptime(countDate, '%Y%m%d') + datetime.timedelta(days=-2)).strftime('%Y%m%d')
@@ -249,7 +248,7 @@ walletUser = get_wallet_user(dataPath, countDate, lastData)
 
 
 # 助贷用户数据读取
-def get_loan_user(path, date1, date2, date3, date4, date5, msg, last):
+def get_loan_user(path, date1, date2, date3, date4, date5):
     data_user = pd.read_excel((path + '用户报表{}.xlsx'.format(date1)), header=1, usecols=['客户手机号', '申请时间'])
     data_user['申请时间'] = data_user['申请时间'].map(lambda x: x[:10])
     data_user = pd.DataFrame(data_user)
@@ -262,29 +261,44 @@ def get_loan_user(path, date1, date2, date3, date4, date5, msg, last):
     df_loan_user.index.name = '指标'
     df_loan_user.loc['活跃用户', '月累计'] = len(list(data_user.loc[date2: date3, '客户手机号'].unique()))
     df_loan_user.loc['活跃用户', '年累计'] = len(list(data_user.loc[date2: date4, '客户手机号'].unique()))
-    df_loan_user.loc['短信引流', date2] = int(msg)
     if date2[-4:] == '0101':
         df_loan_user.loc['新增用户', '月累计'] = df_loan_user.loc['新增用户', date2]
         df_loan_user.loc['新增用户', '年累计'] = df_loan_user.loc['新增用户', date2]
-        df_loan_user.loc['短信引流', '月累计'] = int(msg)
-        df_loan_user.loc['短信引流', '年累计'] = int(msg)
     elif date2[-2:] == '01':
         df_loan_user.loc['新增用户', '月累计'] = df_loan_user.loc['新增用户', date2]
         df_loan_user.loc['新增用户', '年累计'] = len(list(data_user.loc[date2:, '客户手机号'].unique())) - len(
             list(data_user.loc[date4:, '客户手机号'].unique()))
-        df_loan_user.loc['短信引流', '月累计'] = int(msg)
-        df_loan_user.loc['短信引流', '年累计'] = int(last.iloc[9, 5]) + int(msg)
     else:
         df_loan_user.loc['新增用户', '月累计'] = len(list(data_user.loc[date2:, '客户手机号'].unique())) - len(
             list(data_user.loc[date3:, '客户手机号'].unique()))
         df_loan_user.loc['新增用户', '年累计'] = len(list(data_user.loc[date2:, '客户手机号'].unique())) - len(
             list(data_user.loc[date4:, '客户手机号'].unique()))
-        df_loan_user.loc['短信引流', '月累计'] = int(last.iloc[9, 4]) + int(msg)
-        df_loan_user.loc['短信引流', '年累计'] = int(last.iloc[9, 5]) + int(msg)
     return df_loan_user
 
 
-loanUser = get_loan_user(dataPath, docDate, countDate, lastMonthDt, lastYearDt, beforeDate, msgUser, lastData)
+loanUser = get_loan_user(dataPath, docDate, countDate, lastMonthDt, lastYearDt, beforeDate)
+
+
+# 短信引流数据读取
+def get_msg_user(path, date, last):
+    msg = pd.read_excel((path + '表16会员拓展统计表_{}_{}.xlsx'.format(date, date)), header=1, usecols=['APPID'])
+    msg_user = pd.DataFrame(msg)
+    dict_msg_user = {'短信引流': msg_user[msg_user['APPID'].isin(['TLA2020', 'TLA2021'])].count()['APPID']}
+    df_msg_user = pd.DataFrame.from_dict(dict_msg_user, orient='index', columns=[date])
+    df_msg_user.index.name = '指标'
+    if date[-4:] == '0101':
+        df_msg_user.loc['短信引流', '月累计'] = dict_msg_user['短信引流']
+        df_msg_user.loc['短信引流', '年累计'] = dict_msg_user['短信引流']
+    elif date[-2:] == '01':
+        df_msg_user.loc['短信引流', '月累计'] = dict_msg_user['短信引流']
+        df_msg_user.loc['短信引流', '年累计'] = int(last.iloc[9, 5]) + dict_msg_user['短信引流']
+    else:
+        df_msg_user.loc['短信引流', '月累计'] = int(last.iloc[9, 4]) + dict_msg_user['短信引流']
+        df_msg_user.loc['短信引流', '年累计'] = int(last.iloc[9, 5]) + dict_msg_user['短信引流']
+    return df_msg_user
+
+
+msg_user = get_msg_user(dataPath, countDate, lastData)
 
 
 # 放款数据读取
@@ -386,7 +400,7 @@ def get_loan_amt(path, date1, date2, date3, last):
 
 
 loanAmt = get_loan_amt(dataPath, docDate, beforeDate, lastAmtDate, lastData)
-prd = pd.concat([tlt_data, walletUser, loanUser, loanAmt])
+prd = pd.concat([tlt_data, walletUser, loanUser, msg_user, loanAmt])
 prd.to_excel(total, '汇总')
 total.save()
 
