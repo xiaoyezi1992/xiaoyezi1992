@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-path = 'E:/data/12-内部计价/'
+path = 'E:/data/11-内部计价/'
 month = input('请输入月份：')
 detail = pd.read_excel(path + month + '/111-内部计价登记表新-{}.xlsx'.format(month), sheet_name=month)
 sep_detail = pd.ExcelWriter(path + month + '/内部计价分公司明细{}.xlsx'.format(month))

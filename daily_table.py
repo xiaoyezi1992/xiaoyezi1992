@@ -7,7 +7,9 @@
 
 import pandas as pd
 import datetime
+import time
 
+start = time.time()
 # 确定统计路径和时间
 docDate = input('请输入文件下载日期（例如20201030）:')
 countDate = input('请输入日报表统计日期:')
@@ -199,9 +201,9 @@ def get_tlt(path, date, last_data):
             total_df.loc['手续费', '月累计'] = total_data['手续费'].sum() / 10000
             total_df.loc['收益', '月累计'] = total_data['收益'].sum() / 10000
             total_df.loc['笔数', '年累计'] = last_data.iloc[0, 5] + total_data['笔数'].sum() / 10000
-            total_df.loc['金额', '年累计'] = last_data.iloc[1, 5] + total_data['笔数'].sum() / 100000000
-            total_df.loc['手续费', '年累计'] = last_data.iloc[2, 5] + total_data['笔数'].sum() / 10000
-            total_df.loc['收益', '年累计'] = last_data.iloc[3, 5] + total_data['笔数'].sum() / 10000
+            total_df.loc['金额', '年累计'] = last_data.iloc[1, 5] + total_data['金额'].sum() / 100000000
+            total_df.loc['手续费', '年累计'] = last_data.iloc[2, 5] + total_data['手续费'].sum() / 10000
+            total_df.loc['收益', '年累计'] = last_data.iloc[3, 5] + total_data['收益'].sum() / 10000
         else:
             total_df.loc['笔数', '月累计'] = last_data.iloc[0, 4] + total_data['笔数'].sum() / 10000
             total_df.loc['金额', '月累计'] = last_data.iloc[1, 4] + total_data['金额'].sum() / 100000000
@@ -298,7 +300,7 @@ def get_msg_user(path, date, last):
     return df_msg_user
 
 
-msg_user = get_msg_user(dataPath, countDate, lastData)
+msg_users = get_msg_user(dataPath, countDate, lastData)
 
 
 # 放款数据读取
@@ -346,8 +348,8 @@ def get_loan_amt(path, date1, date2, date3, last):
     # 到手商城
     ds_data = pd.read_excel((path + '订单列表{}.xls'.format(date2)), usecols=['订单状态', '订单金额', '期数'])
     ds_data.set_index(['订单状态'], inplace=True)
-    listDS = ['待发货', '已发货', '备货中']
-    judge_list = [i in listDS for i in ds_data.index]
+    list_ds = ['待发货', '已发货', '备货中']
+    judge_list = [i in list_ds for i in ds_data.index]
     df_ds = ds_data.loc[judge_list]
     df_ds.set_index('期数', inplace=True)
     ds_amt = int(df_ds.loc[df_ds.index > 0, :].sum())
@@ -359,49 +361,49 @@ def get_loan_amt(path, date1, date2, date3, last):
     judge_list_jk = [j in list_jk for j in jk_data.index]
     jk_amt = int(jk_data.loc[judge_list_jk].sum())
 
-    totalAmt = (syj_amt + pos_amt + ck_amt + tx_amt + ft_amt + tl_amt + ds_amt + jk_amt) / 10000
-    syjOtherAmt = (pos_amt + ck_amt + tx_amt + ft_amt + tl_amt) / 10000
-    dsTotalAmt = (ds_amt + jk_amt) / 10000
+    total_amt = (syj_amt + pos_amt + ck_amt + tx_amt + ft_amt + tl_amt + ds_amt + jk_amt) / 10000
+    syj_other_amt = (pos_amt + ck_amt + tx_amt + ft_amt + tl_amt) / 10000
+    ds_total_amt = (ds_amt + jk_amt) / 10000
 
-    dict_loan_amt = {'新增放款（万）': totalAmt,
+    dict_loan_amt = {'新增放款（万）': total_amt,
                      '生意金-网商贷': syj_amt / 10000,
-                     '生意金-其他': syjOtherAmt,
-                     '到手': dsTotalAmt}
+                     '生意金-其他': syj_other_amt,
+                     '到手': ds_total_amt}
     df_loan_amt = pd.DataFrame.from_dict(dict_loan_amt, orient='index', columns=[date2])
     df_loan_amt.index.name = '指标'
     if beforeDate[-4:] == '0101':
-        df_loan_amt.loc['新增放款（万）', '月累计'] = totalAmt
+        df_loan_amt.loc['新增放款（万）', '月累计'] = total_amt
         df_loan_amt.loc['生意金-网商贷', '月累计'] = syj_amt / 10000
-        df_loan_amt.loc['生意金-其他', '月累计'] = syjOtherAmt
-        df_loan_amt.loc['到手', '月累计'] = dsTotalAmt
-        df_loan_amt.loc['新增放款（万）', '年累计'] = totalAmt
+        df_loan_amt.loc['生意金-其他', '月累计'] = syj_other_amt
+        df_loan_amt.loc['到手', '月累计'] = ds_total_amt
+        df_loan_amt.loc['新增放款（万）', '年累计'] = total_amt
         df_loan_amt.loc['生意金-网商贷', '年累计'] = syj_amt / 10000
-        df_loan_amt.loc['生意金-其他', '年累计'] = syjOtherAmt
-        df_loan_amt.loc['到手', '年累计'] = dsTotalAmt
+        df_loan_amt.loc['生意金-其他', '年累计'] = syj_other_amt
+        df_loan_amt.loc['到手', '年累计'] = ds_total_amt
     elif beforeDate[-2:] == '01':
-        df_loan_amt.loc['新增放款（万）', '月累计'] = totalAmt
+        df_loan_amt.loc['新增放款（万）', '月累计'] = total_amt
         df_loan_amt.loc['生意金-网商贷', '月累计'] = syj_amt / 10000
-        df_loan_amt.loc['生意金-其他', '月累计'] = syjOtherAmt
-        df_loan_amt.loc['到手', '月累计'] = dsTotalAmt
-        df_loan_amt.loc['新增放款（万）', '年累计'] = last.iloc[10, 5] + totalAmt
+        df_loan_amt.loc['生意金-其他', '月累计'] = syj_other_amt
+        df_loan_amt.loc['到手', '月累计'] = ds_total_amt
+        df_loan_amt.loc['新增放款（万）', '年累计'] = last.iloc[10, 5] + total_amt
         df_loan_amt.loc['生意金-网商贷', '年累计'] = last.iloc[11, 5] + syj_amt / 10000
-        df_loan_amt.loc['生意金-其他', '年累计'] = last.iloc[12, 5] + syjOtherAmt
-        df_loan_amt.loc['到手', '年累计'] = last.iloc[13, 5] + dsTotalAmt
+        df_loan_amt.loc['生意金-其他', '年累计'] = last.iloc[12, 5] + syj_other_amt
+        df_loan_amt.loc['到手', '年累计'] = last.iloc[13, 5] + ds_total_amt
     else:
-        df_loan_amt.loc['新增放款（万）', '月累计'] = last.iloc[10, 4] + totalAmt
+        df_loan_amt.loc['新增放款（万）', '月累计'] = last.iloc[10, 4] + total_amt
         df_loan_amt.loc['生意金-网商贷', '月累计'] = last.iloc[11, 4] + syj_amt / 10000
-        df_loan_amt.loc['生意金-其他', '月累计'] = last.iloc[12, 4] + syjOtherAmt
-        df_loan_amt.loc['到手', '月累计'] = last.iloc[13, 4] + dsTotalAmt
-        df_loan_amt.loc['新增放款（万）', '年累计'] = last.iloc[10, 5] + totalAmt
+        df_loan_amt.loc['生意金-其他', '月累计'] = last.iloc[12, 4] + syj_other_amt
+        df_loan_amt.loc['到手', '月累计'] = last.iloc[13, 4] + ds_total_amt
+        df_loan_amt.loc['新增放款（万）', '年累计'] = last.iloc[10, 5] + total_amt
         df_loan_amt.loc['生意金-网商贷', '年累计'] = last.iloc[11, 5] + syj_amt / 10000
-        df_loan_amt.loc['生意金-其他', '年累计'] = last.iloc[12, 5] + syjOtherAmt
-        df_loan_amt.loc['到手', '年累计'] = last.iloc[13, 5] + dsTotalAmt
+        df_loan_amt.loc['生意金-其他', '年累计'] = last.iloc[12, 5] + syj_other_amt
+        df_loan_amt.loc['到手', '年累计'] = last.iloc[13, 5] + ds_total_amt
     return df_loan_amt
 
 
-loanAmt = get_loan_amt(dataPath, docDate, beforeDate, lastAmtDate, lastData)
-prd = pd.concat([tlt_data, walletUser, loanUser, msg_user, loanAmt])
+loan_amt = get_loan_amt(dataPath, docDate, beforeDate, lastAmtDate, lastData)
+prd = pd.concat([tlt_data, walletUser, loanUser, msg_users, loan_amt])
 prd.to_excel(total, '汇总')
 total.save()
-
-print('完成！完成！完成！\n' * 5)
+end = time.time()
+print(end - start)
