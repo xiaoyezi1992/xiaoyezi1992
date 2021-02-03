@@ -24,7 +24,7 @@ lastYearDt = (datetime.datetime.strptime((countDate[:4] + '0101'), '%Y%m%d') + d
     '%Y%m%d')  # 上年末，用于统计助贷用户年累计
 dataPath = 'E:/data/1-原始数据表/产品/'
 savePath = 'E:/data/2-数据源表/产品/'
-lastData = pd.read_excel('E:/data/4-日报表&周报表/日报&周报202010/个人业务事业部日报表_{}.xlsx'.format(beforeDate),
+lastData = pd.read_excel('E:/data/3-结果数据/1-日报表&周报表/日报&周报202010/个人业务事业部日报表_{}.xlsx'.format(beforeDate),
                          sheet_name='Sheet1', header=1, usecols=['区间', 'Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4',
                                                                  '月累计', '年累计'])
 total = pd.ExcelWriter(savePath + '日报表数据{}.xlsx'.format(countDate))

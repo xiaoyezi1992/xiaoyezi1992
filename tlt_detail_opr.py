@@ -214,7 +214,7 @@ total_df.index.name = '指标'
 
 if len(dateGet) == 8:  # 日报表增加累计数据
     lastDate = (datetime.datetime.strptime(dateGet, '%Y%m%d') + datetime.timedelta(days=-1)).strftime('%Y%m%d')
-    lastData = pd.read_excel('E:/data/4-日报表&周报表/日报&周报202010/个人业务事业部日报表_{}.xlsx'.format(lastDate),
+    lastData = pd.read_excel('E:/data/3-结果数据/1-日报表&周报表/日报&周报202010/个人业务事业部日报表_{}.xlsx'.format(lastDate),
                              sheet_name='Sheet1', header=1, usecols=['区间', '月累计', '年累计'], nrows=4, index_col='区间')
     if dateGet[-4:] == '0101':
         total_df.loc['笔数', '月累计'] = totalData['笔数'].sum() / 10000
@@ -243,7 +243,8 @@ if len(dateGet) == 8:  # 日报表增加累计数据
         total_df.loc['金额', '年累计'] = lastData.loc['交易金额（亿）', '年累计'] + totalData['金额'].sum() / 100000000
         total_df.loc['手续费', '年累计'] = lastData.loc['手续费（万）', '年累计'] + totalData['手续费'].sum() / 10000
         total_df.loc['收益', '年累计'] = lastData.loc['收益（剔除渠道成本/万）', '年累计'] + totalData['收益'].sum() / 10000
-
+else:
+    pass
 
 # 数据存入电子表格
 docSave = pd.ExcelWriter(savePath + 'TLT源表_{}.xlsx'.format(dateGet))

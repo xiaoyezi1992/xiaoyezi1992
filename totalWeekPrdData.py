@@ -53,7 +53,7 @@ def get_wallet_user(path, date1, date2):
                    '活跃用户': wallet_data1.loc['合计：', '活跃用户数']}
     df_wallet = pd.DataFrame.from_dict(dict_wallet, orient='index',columns=['{}-{}'.format(date1, date2)])
     df_wallet.loc['新增用户', '月累计'] = wallet_data2.loc['合计：', '新增会员数']
-    year_data = pd.read_excel('E:/data/4-日报表&周报表/日报&周报202010/个人业务事业部日报表_{}.xlsx'.format(date2),
+    year_data = pd.read_excel('E:/data/3-结果数据/1-日报表&周报表/日报&周报202010/个人业务事业部日报表_{}.xlsx'.format(date2),
                               sheet_name='Sheet1', header=1, usecols=['区间', 'Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4',
                                                                       '月累计', '年累计'])
     df_wallet.loc['新增用户', '年累计'] = year_data.iloc[4, 5]
@@ -127,7 +127,7 @@ def get_loan_amt(path, date1, date2, date3, date4, date5):
     dict_loan_amt = {'生意金': (syj_amt + pos_amt + ck_amt + tx_amt + ft_amt + tl_amt) / 10000,
                      '到手': (ds_amt + jk_amt) / 10000}
     df_loan_amt = pd.DataFrame.from_dict(dict_loan_amt, orient='index',columns=['{}-{}'.format(date3, date2)])
-    year_data = pd.read_excel('E:/data/4-日报表&周报表/日报&周报202010/个人业务事业部日报表_{}.xlsx'.format(date5),
+    year_data = pd.read_excel('E:/data/3-结果数据/1-日报表&周报表/日报&周报202010/个人业务事业部日报表_{}.xlsx'.format(date5),
                               sheet_name='Sheet1', header=1, usecols=['区间', 'Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4',
                                                                       '月累计', '年累计'])
     df_loan_amt.loc['生意金', '月累计'] = year_data.iloc[11, 4] + year_data.iloc[12, 4]

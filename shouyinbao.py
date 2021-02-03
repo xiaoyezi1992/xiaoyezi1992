@@ -4,7 +4,7 @@
 import pandas as pd
 
 sub_path = input('请输入月份文件夹：')
-total_path = 'E:/data/9-收入&成本核算/'
+total_path = 'E:/data/3-结果数据/6-收入&成本核算/'
 data = pd.read_excel(total_path + '{}/收银宝{}.xlsx'.format(sub_path, sub_path), header=1)
 data1 = data[data['所属事业部'] == '总部个人事业部']
 data1.loc['成本'] = data.loc[:, '交易成本'] + data1.loc[:, '差异成本']

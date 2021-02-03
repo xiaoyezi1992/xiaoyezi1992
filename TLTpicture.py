@@ -4,7 +4,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 import datetime
 
-dataPath = 'E:/data/4-日报表&周报表/日报&周报202010/个人业务事业部日报表_'
+dataPath = 'E:/data/3-结果数据/1-日报表&周报表/日报&周报202010/个人业务事业部日报表_'
 date_today = input('请输入日报统计日期：')
 time_date_today = datetime.datetime.strptime(date_today, '%Y%m%d')
 time_date_begin = time_date_today - datetime.timedelta(45)

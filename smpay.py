@@ -5,9 +5,10 @@ import pandas as pd
 import os
 
 
-path = 'E:/data/9-收入&成本核算/'
-period = input('请输入应收明细汇总月份：')
-open_path = path + period + '/实名支付'
+path = 'E:/data/1-原始数据表/TLT/实名支付/'
+period = input('请输入财务收入成本入账月份：')
+open_path = path + period + '/'
+save_path = 'E:/data/3-结果数据/6-收入&成本核算/' + period + '/'
 
 
 def total_doc(folder):
@@ -47,6 +48,6 @@ def str_flt(x):
 detail['商户简称'] = detail['客户名'].astype(str).map(cut)
 detail.loc[:, '剔税已收'] = detail['已收手续费'].astype(str).map(str_flt)/1.06
 detail.loc[:, '剔税未收'] = detail['未收手续费'].astype(str).map(str_flt)/1.06
-save_detail = pd.ExcelWriter(open_path + '{}明细汇总.xlsx'.format(period))
+save_detail = pd.ExcelWriter(save_path + '实名支付明细汇总{}入账.xlsx'.format(period))
 detail.to_excel(save_detail, '全部明细')
 save_detail.save()
