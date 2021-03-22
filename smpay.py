@@ -48,6 +48,8 @@ def str_flt(x):
 detail['商户简称'] = detail['客户名'].astype(str).map(cut)
 detail.loc[:, '剔税已收'] = detail['已收手续费'].astype(str).map(str_flt)/1.06
 detail.loc[:, '剔税未收'] = detail['未收手续费'].astype(str).map(str_flt)/1.06
-save_detail = pd.ExcelWriter(save_path + '实名支付明细汇总{}入账.xlsx'.format(period))
+detail_gr = detail[detail['一级行业'] == '个人业务']
+save_detail = pd.ExcelWriter(save_path + '实名支付明细汇总_{}入账.xlsx'.format(period))
 detail.to_excel(save_detail, '全部明细')
+detail_gr.to_excel(save_detail, '个人明细')
 save_detail.save()

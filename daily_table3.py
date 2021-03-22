@@ -1,8 +1,8 @@
 # coding:utf-8
 
 # 将日报表支付+个人科技明细表按需汇总统计数据
-# 源数据：前一日日报表，明细：支付下载统计日、通联钱包下载统计日及当月累计至统计日、到手下载统计日、生意金需要当天及前一天放款数据表
-# 其他助贷产品放款及助贷用户下载当天报表，短信引流数据在统一报表平台下载统计日
+# 源数据：前一日日报表，明细：支付下载统计日、通联钱包下载统计日及当月累计至统计日、到手下载统计日
+# 生意金数据为新统计表，其他助贷产品放款及助贷用户下载当天报表，短信引流数据在统一报表平台下载统计日
 
 
 import pandas as pd
@@ -341,9 +341,11 @@ def get_loan_amt(path, date1, date2, date3, last):
     tl_amt = tl_data[date2].sum()
 
     # 生意金
-    syj_data = pd.read_csv((path + 'tonglian_jigou_{}.csv'.format(date2)), usecols=['AMT'])
-    syj_data2 = pd.read_csv((path + 'tonglian_jigou_{}.csv'.format(date3)), usecols=['AMT'])
-    syj_amt = int(syj_data.sum() - syj_data2.sum())
+    syj_data = pd.read_excel((path + '生意金汇总数据{}.xlsx'.format(date1)), header=1, usecols=['日期', '当日新增支用 金额'])
+    syj_data['日期'] = pd.to_datetime(syj_data['日期'], format='%Y%m%d')
+    syj_data.set_index('日期', inplace=True)
+    syj_data = pd.Series(syj_data['当日新增支用 金额'], index=syj_data.index)
+    syj_amt = syj_data[date2]
 
     # 到手商城
     ds_data = pd.read_excel((path + '订单列表{}.xls'.format(date2)), usecols=['订单状态', '订单金额', '期数'])

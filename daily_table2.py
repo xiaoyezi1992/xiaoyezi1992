@@ -3,6 +3,7 @@
 # 将日报表支付+个人科技明细表按需汇总统计数据
 # 源数据：前一日日报表，明细：支付下载统计日、通联钱包下载统计日及当月累计至统计日、到手下载统计日、生意金需要当天及前一天放款数据表
 # 其他助贷产品放款及助贷用户下载当天报表，短信引流数据在统一报表平台下载统计日
+# daily_table钱包新增会员数调整类型
 
 
 import pandas as pd
@@ -226,7 +227,7 @@ def get_wallet_user(path, date, last):
                                 usecols=['分公司名称', '本期会员数', '新增会员数', '活跃用户数', '当年累计活跃用户数'])
     wallet_user2 = pd.read_excel((path + '表1个人会员信息期间汇总报表_{}_{}.xls'.format((date[0:6] + '01'), date)),
                                  sheet_name='个人会员信息期间汇总报表', header=1, index_col=0, usecols=['分公司名称', '活跃用户数'])
-    dict_wallet = {'新增用户': int(wallet_user.loc['合计：', '新增会员数'].replace(',', '')),
+    dict_wallet = {'新增用户': int(wallet_user.loc['合计：', '新增会员数']),
                    '活跃用户': int(wallet_user.loc['合计：', '活跃用户数'].replace(',', ''))}
     df_wallet = pd.DataFrame.from_dict(dict_wallet, orient='index', columns=[date])
     df_wallet.index.name = '指标'
@@ -241,8 +242,8 @@ def get_wallet_user(path, date, last):
         df_wallet.loc['新增用户', '年累计'] = int(last.iloc[4, 5]) + int(wallet_user.loc['合计：', '新增会员数'].replace(',', ''))
     else:
         df_wallet.loc['新增用户', '月累计'] = int(last.iloc[4, 4]) + \
-                                       int(wallet_user.loc['合计：', '新增会员数'].replace(',', ''))
-        df_wallet.loc['新增用户', '年累计'] = int(last.iloc[4, 5]) + int(wallet_user.loc['合计：', '新增会员数'].replace(',', ''))
+                                       int(wallet_user.loc['合计：', '新增会员数'])
+        df_wallet.loc['新增用户', '年累计'] = int(last.iloc[4, 5]) + int(wallet_user.loc['合计：', '新增会员数'])
     return df_wallet
 
 

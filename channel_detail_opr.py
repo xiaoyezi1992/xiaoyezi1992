@@ -29,6 +29,27 @@ def detail_sift(name):
 
     channel_detail['商户号'] = channel_detail['商户号'].map(deal_str)
     channel_detail['父商户号'] = channel_detail['父商户号'].map(deal_str)
+
+    # 增加商户简称
+    def cut(x):
+        if '卡中心' in x:
+            return x[0:x.find('卡中心') + 3]
+        elif '分行' in x:
+            return x[0:x.find('分行') + 2]
+        elif '公司' in x:
+            return x[0:x.find('公司') + 2]
+        elif '（' in x:
+            return x[0:x.find('（')]
+        else:
+            return x
+
+    channel_detail['商户简称'] = channel_detail['商户名称'].astype(str).map(cut)
+    # 调整部分特殊商户简称
+    channel_detail.loc[channel_detail['商户名称'] == '（360借条1）五矿国际信托有限公司', '商户简称'] = '（360借条）五矿国际信托有限公司'
+    channel_detail.loc[channel_detail['商户名称'] == '（360借条2）五矿国际信托有限公司', '商户简称'] = '（360借条）五矿国际信托有限公司'
+    channel_detail.loc[channel_detail['商户名称'] == '中国民生银行股份有限公司信用卡中心', '商户简称'] = '民生银行信用卡中心'
+    channel_detail.loc[channel_detail['商户名称'] == '实时还款', '商户简称'] = '浦东发展银行信用卡中心'
+
     return channel_detail
 
 
