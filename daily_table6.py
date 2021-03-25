@@ -3,7 +3,7 @@
 # 将日报表支付+个人科技明细表按需汇总统计数据
 # 源数据：前一日日报表，明细：支付下载统计日、通联钱包下载统计日及当月累计至统计日、到手下载统计日
 # 生意金数据为新统计表，其他助贷产品放款及助贷用户下载当天报表，短信引流数据在统一报表平台下载统计日
-# daily_table3生意金放款数据调整数据类型,daily_table4增加判断生意金当日是否无数据
+# daily_table3生意金放款数据调整数据类型,daily_table4增加判断生意金当日是否无数据,daily_table5增加判断当日新增金额是否为0
 
 
 import pandas as pd
@@ -342,14 +342,20 @@ def get_loan_amt(path, date1, date2, date3, last):
     tl_amt = tl_data[date2].sum()
 
     # 生意金
-    syj_data = pd.read_excel((path + '生意金汇总数据{}.xlsx'.format(date1)), header=1, usecols=['日期', '当日新增支用 金额'])
+    syj_data = pd.read_excel((path + '生意金汇总数据{}.xlsx'.format(date1)), header=1, usecols=['日期', '当日新增支用 金额', '累计支用金额'])
     syj_data['日期'] = pd.to_datetime(syj_data['日期'], format='%Y%m%d')
     syj_data.set_index('日期', inplace=True)
-    syj_data = pd.Series(syj_data['当日新增支用 金额'], index=syj_data.index)
-    if syj_data[date2].empty:  # 增加判断当日是否无数据
+    # syj_data = pd.Series(syj_data['当日新增支用 金额'], index=syj_data.index)
+    if syj_data.loc[date2, '当日新增支用 金额'].empty:  # 增加判断当日是否无数据
         syj_amt = 0
     else:
-        syj_amt = int(syj_data[date2])
+        if int(syj_data.loc[date2, '当日新增支用 金额']) == 0:  # 如当日新增放款为0，新增使用当日减上日累计数
+            if syj_data.loc[date3, '当日新增支用 金额'].empty:
+                syj_amt = -1  # 手工处理数据
+            else:
+                syj_amt = int(syj_data.loc[date2, '累计支用金额']) - int(syj_data.loc[date3, '累计支用金额'])
+        else:
+            syj_amt = int(syj_data.loc[date2, '当日新增支用 金额'])
 
     # 到手商城
     ds_data = pd.read_excel((path + '订单列表{}.xls'.format(date2)), usecols=['订单状态', '订单金额', '期数'])
