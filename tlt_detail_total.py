@@ -160,8 +160,9 @@ def detail_opr(date, path):
                 200584000021925: '美团', 200584000021616: '美团', 200584000021615: '美团', 200584000021614: '美团',
                 200584000021613: '美团', 200584000021585: '美团', 200584000021067: '美团', 200584000021066: '美团',
                 200584000021065: '美团', 200584000020705: '美团', 200691900014265: '美团', 200690100000581: '美团',
-                200192000002788: '360项目', 200584000025431: '美团', 200584000025606: '美团',
-                200584000025607: '美团'}  # 20210304更新
+                200192000002788: '360项目', 200584000025431: '美团', 200584000025606: '美团', 200584000025607: '美团',
+                200440300000003: '美团', 200440300000023: '美团', 200440300000024: '美团', 200440300000025: '美团',
+                200584000025435: '美团', 200584000025652: '美团', 200584000025653: '美团'}  # 20210402更新
     total_data['项目标签'] = total_data['商户号'].map(prj_dict)
     total_data['收益'] = total_data['手续费'] - total_data['成本']
 
@@ -186,6 +187,8 @@ def detail_opr(date, path):
     total_data.loc[total_data['商户名称'] == '中国民生银行股份有限公司信用卡中心', '商户简称'] = '民生银行信用卡中心'
     total_data.loc[total_data['商户名称'] == '实时还款', '商户简称'] = '浦东发展银行信用卡中心'
     total_data.loc[total_data['商户名称'] == '辽宁自贸试验区（营口片区）桔子数字科技有限公司（协议支付）', '商户简称'] = '北京桔子分期电子商务有限公司'  # 20210125更新
+    total_data.loc[total_data['商户名称'] == '平安银行股份有限公司信用卡中心1', '商户简称'] = '平安银行信用卡中心'  # 20210401
+    total_data.loc[total_data['商户名称'] == '平安银行股份有限公司信用卡中心2', '商户简称'] = '平安银行信用卡中心'  # 20210401
 
     # 剔除合计行数据
     total_data = total_data[total_data['商户名称'].notnull()]
@@ -252,12 +255,19 @@ total_table = detail_count(total_detail, date_get)
 def total_name(detail):
     detail = detail.fillna({'项目标签': '无'})
     name_detail = detail.groupby(['项目标签', '商户简称', '收入所属方'])
-    project_detail = detail.groupby('项目标签')
     name_detail_sum = name_detail.agg(sum)
-    project_sum = project_detail.agg(sum)
     name_detail_sum = name_detail_sum.reset_index()
+    name_detail_sum = name_detail_sum[name_detail_sum['项目标签'] == '无']
+    project_detail = detail.groupby('项目标签')
+    project_sum = project_detail.agg(sum)
     project_sum = project_sum.reset_index()
+    project_sum.loc['总计'] = project_sum.sum()
+    project_sum = project_sum[project_sum['项目标签'] != '无']
     total_name_detail = pd.concat([name_detail_sum, project_sum])
+    del total_name_detail['成本']
+    total_name_detail['项目标签'] = total_name_detail['项目标签'].replace('360项目无美团', '总计')
+    total_name_detail = total_name_detail[['项目标签', '商户简称', '收入所属方', '笔数', '金额', '手续费', '收益']]
+    total_name_detail = total_name_detail.fillna(method='ffill', axis=1)
     return total_name_detail
 
 

@@ -53,3 +53,4 @@ save_detail = pd.ExcelWriter(save_path + '实名支付明细汇总_{}入账.xlsx
 detail.to_excel(save_detail, '全部明细')
 detail_gr.to_excel(save_detail, '个人明细')
 save_detail.save()
+print('--------------------\n' * 5)
