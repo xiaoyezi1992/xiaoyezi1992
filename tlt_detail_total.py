@@ -281,6 +281,7 @@ def total_ind(detail):
     ind_detail = detail.groupby(['二级行业'])
     ind_detail_sum = ind_detail.agg(sum)
     ind_detail_sum = ind_detail_sum[['笔数', '金额', '手续费', '收益']]
+    ind_detail_sum.loc['总计', :] = ind_detail_sum.sum()
     return ind_detail_sum
 
 

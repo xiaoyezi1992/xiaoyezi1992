@@ -26,6 +26,7 @@ detail = detail_org[~(detail_org['客户号'].str.contains('合计：'))]
 detail = detail[~(detail['客户号'].str.contains('打印：'))]
 
 
+# 增加商户简称
 def cut(x):
     if '卡中心' in x:
         return x[0:x.find('卡中心') + 3]
@@ -46,8 +47,18 @@ def str_flt(x):
 
 
 detail['商户简称'] = detail['客户名'].astype(str).map(cut)
+# 调整特殊商户简称
+detail.loc[detail['商户名称'] == '（360借条1）五矿国际信托有限公司', '商户简称'] = '（360借条）五矿国际信托有限公司'
+detail.loc[detail['商户名称'] == '（360借条2）五矿国际信托有限公司', '商户简称'] = '（360借条）五矿国际信托有限公司'
+detail.loc[detail['商户名称'] == '中国民生银行股份有限公司信用卡中心', '商户简称'] = '民生银行信用卡中心'
+detail.loc[detail['商户名称'] == '实时还款', '商户简称'] = '浦东发展银行信用卡中心'
+detail.loc[detail['商户名称'] == '辽宁自贸试验区（营口片区）桔子数字科技有限公司（协议支付）', '商户简称'] = '北京桔子分期电子商务有限公司'  # 20210125更新
+detail.loc[detail['商户名称'] == '平安银行股份有限公司信用卡中心1', '商户简称'] = '平安银行信用卡中心'  # 20210401
+detail.loc[detail['商户名称'] == '平安银行股份有限公司信用卡中心2', '商户简称'] = '平安银行信用卡中心'  # 20210401
+# 增加剔税金额
 detail.loc[:, '剔税已收'] = detail['已收手续费'].astype(str).map(str_flt)/1.06
 detail.loc[:, '剔税未收'] = detail['未收手续费'].astype(str).map(str_flt)/1.06
+
 detail_gr = detail[detail['一级行业'] == '个人业务']
 save_detail = pd.ExcelWriter(save_path + '实名支付明细汇总_{}入账.xlsx'.format(period))
 detail.to_excel(save_detail, '全部明细')

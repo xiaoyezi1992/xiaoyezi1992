@@ -342,11 +342,11 @@ def get_loan_amt(path, date1, date2, date3, last):
     ft_amt = ft_data[date2].sum()
 
     # 通联快贷
-    tl_data = pd.read_excel((path + '通联快贷贷后数据{}.xlsx'.format(date1)), header=1, usecols=['支用日期', '支用金额'])
-    tl_data['支用日期'] = pd.to_datetime(tl_data['支用日期'])
-    tl_data.set_index('支用日期', inplace=True)
-    tl_data = pd.Series(tl_data['支用金额'], index=tl_data.index)
-    tl_amt = tl_data[date2].sum()
+    # tl_data = pd.read_excel((path + '通联快贷贷后数据{}.xlsx'.format(date1)), header=1, usecols=['支用日期', '支用金额'])
+    # tl_data['支用日期'] = pd.to_datetime(tl_data['支用日期'])
+    # tl_data.set_index('支用日期', inplace=True)
+    # tl_data = pd.Series(tl_data['支用金额'], index=tl_data.index)
+    # tl_amt = tl_data[date2].sum()
 
     # 生意金
     syj_data = pd.read_excel((path + '生意金汇总数据{}.xlsx'.format(date1)), header=1, usecols=['日期', '当日新增支用 金额', '累计支用金额'])
@@ -382,8 +382,8 @@ def get_loan_amt(path, date1, date2, date3, last):
     judge_list_jk = [j in list_jk for j in jk_data.index]
     jk_amt = int(jk_data.loc[judge_list_jk].sum())
 
-    total_amt = (syj_amt + pos_amt + ck_amt + tx_amt + ft_amt + tl_amt + ds_amt + jk_amt) / 10000
-    syj_other_amt = (pos_amt + ck_amt + tx_amt + ft_amt + tl_amt) / 10000
+    total_amt = (syj_amt + pos_amt + ck_amt + tx_amt + ft_amt + ds_amt + jk_amt) / 10000 # + tl_amt
+    syj_other_amt = (pos_amt + ck_amt + tx_amt + ft_amt) / 10000 # + tl_amt
     ds_total_amt = (ds_amt + jk_amt) / 10000
 
     dict_loan_amt = {'新增放款（万）': total_amt,
