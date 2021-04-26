@@ -269,7 +269,7 @@ def total_name(detail):
     del total_name_detail['成本']
     total_name_detail['项目标签'] = total_name_detail['项目标签'].replace('360项目无美团', '总计')
     total_name_detail = total_name_detail[['项目标签', '商户简称', '收入所属方', '笔数', '金额', '手续费', '收益']]
-    total_name_detail = total_name_detail.fillna(method='ffill', axis=1)
+    total_name_detail = total_name_detail.fillna({'商户简称': total_name_detail['项目标签'], '收入所属方': ''})
     return total_name_detail
 
 
