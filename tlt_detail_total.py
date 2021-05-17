@@ -296,4 +296,4 @@ ind_data.to_excel(doc_save, '行业汇总')
 total_detail.to_excel(doc_save, '明细')
 doc_save.save()
 
-print('-------------------------------------------\n' * 5)
+print('----------\n' * 5)
