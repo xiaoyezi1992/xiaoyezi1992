@@ -72,4 +72,4 @@ week_company.to_excel(week_com_result, '本周分公司已分润')
 week_company_all.to_excel(week_com_result, '微信公众号数据')
 week_com_result.save()
 
-print('-------------------------------------------\n' * 5)
+print('----------\n' * 5)

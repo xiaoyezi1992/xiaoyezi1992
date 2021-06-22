@@ -20,6 +20,8 @@ def detail_sift(name):
     channel_detail['代收付类型'] = channel_detail['交易类型'].map(deal_type)
     channel_detail.dropna(axis=0, subset=['代收付类型'], inplace=True)
     channel_detail.dropna(axis=0, subset=['交易渠道'], inplace=True)
+    channel_detail = channel_detail[~((channel_detail['代收付类型'] == '代收') & (channel_detail['交易渠道'] == '手工网银'))]
+    channel_detail = channel_detail[~((channel_detail['代收付类型'] == '代付') & (channel_detail['交易渠道'] == '工行'))]
     channel_detail['笔数'] = channel_detail['成功笔数(不含跨行)'] + channel_detail['跨行发送银行笔数']
     channel_detail['金额'] = channel_detail['成功金额(不含跨行)'] + channel_detail['跨行发送银行金额']
 
@@ -49,7 +51,8 @@ def detail_sift(name):
     channel_detail.loc[channel_detail['商户名称'] == '（360借条2）五矿国际信托有限公司', '商户简称'] = '（360借条）五矿国际信托有限公司'
     channel_detail.loc[channel_detail['商户名称'] == '中国民生银行股份有限公司信用卡中心', '商户简称'] = '民生银行信用卡中心'
     channel_detail.loc[channel_detail['商户名称'] == '实时还款', '商户简称'] = '浦东发展银行信用卡中心'
-    channel_detail.loc[channel_detail['商户名称'] == '辽宁自贸试验区（营口片区）桔子数字科技有限公司（协议支付）', '商户简称'] = '北京桔子分期电子商务有限公司'  # 20210125更新
+    channel_detail.loc[channel_detail['商户名称'] == '辽宁自贸试验区（营口片区）桔子数字科技有限公司（协议支付）', '商户简称'] = '北京桔子分期电子商务有限公司'
+    # 20210125更新
     channel_detail.loc[channel_detail['商户名称'] == '平安银行股份有限公司信用卡中心1', '商户简称'] = '平安银行信用卡中心'  # 20210401
     channel_detail.loc[channel_detail['商户名称'] == '平安银行股份有限公司信用卡中心2', '商户简称'] = '平安银行信用卡中心'  # 20210401
 
@@ -59,6 +62,6 @@ def detail_sift(name):
 date_get = input('请输入明细日期后缀（例如202009）：')
 detail_data = detail_sift(date_get)
 totalExcel = pd.ExcelWriter('E:/data/2-数据源表/TLT/商户渠道明细{}_核算成本.xlsx'.format(date_get))
-detail_data.to_excel(totalExcel, '全部明细')
+detail_data.to_excel(totalExcel, '全部明细', index=False)
 totalExcel.save()
 print('---------------\n' * 5)

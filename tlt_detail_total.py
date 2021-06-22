@@ -162,9 +162,9 @@ def detail_opr(date, path):
                 200584000021925: '美团', 200584000021616: '美团', 200584000021615: '美团', 200584000021614: '美团',
                 200584000021613: '美团', 200584000021585: '美团', 200584000021067: '美团', 200584000021066: '美团',
                 200584000021065: '美团', 200584000020705: '美团', 200691900014265: '美团', 200690100000581: '美团',
-                200584000025431: '美团', 200584000025606: '美团', 200584000025607: '美团',
+                200584000025431: '美团', 200584000025606: '美团', 200584000025607: '美团', 200440300000149: '美团',
                 200440300000003: '美团', 200440300000023: '美团', 200440300000024: '美团', 200440300000025: '美团',
-                200584000025435: '美团', 200584000025652: '美团', 200584000025653: '美团'}  # 20210402更新
+                200584000025435: '美团', 200584000025652: '美团', 200584000025653: '美团', 200440300000148: '美团'} # 20210601更新
     total_data['项目标签'] = total_data['商户号'].map(prj_dict)
     total_data['收益'] = total_data['手续费'] - total_data['成本']
 
@@ -276,6 +276,35 @@ def total_name(detail):
 name_data = total_name(total_detail)
 
 
+# 商户简称&收入所属方&行业汇总
+def total_name_ind(detail):
+    detail = detail.fillna({'项目标签': '无'})
+    name_ind_dtl = detail.groupby(['项目标签', '商户简称', '收入所属方', '二级行业'])
+    name_ind_sum = name_ind_dtl.agg(sum)
+    name_ind_sum = name_ind_sum.reset_index()
+    name_ind_sum = name_ind_sum[name_ind_sum['项目标签'] == '无']
+    project_detail = detail.groupby(['项目标签', '二级行业'])
+    project_sum = project_detail.agg(sum)
+    project_sum = project_sum.reset_index()
+    project_sum.loc['总计'] = project_sum.sum()
+    project_sum = project_sum[project_sum['项目标签'] != '无']
+    total_name_dtl = pd.concat([name_ind_sum, project_sum])
+    del total_name_dtl['成本']
+    total_name_dtl['项目标签'] = total_name_dtl['项目标签'].replace('360项目360项目360项目360项目无无无无无无无无美团美团', '总计')
+    total_name_dtl['二级行业'] = total_name_dtl['二级行业'].replace('互金信托消费金融银行个人科技互金信托卡中心小贷汽车金融消费金融银行小贷银行', '')
+    total_name_dtl = total_name_dtl[['项目标签', '商户简称', '收入所属方', '二级行业', '笔数', '金额', '手续费', '收益']]
+    total_name_dtl = total_name_dtl.fillna({'商户简称': total_name_dtl['项目标签'], '收入所属方': ''})
+    total_name_dtl.loc[total_name_dtl.loc[:, '商户简称'] == '五矿国际信托有限公司', '二级行业'] = '信托'
+    total_name_dtl.loc[total_name_dtl.loc[:, '商户简称'] == '360项目', '二级行业'] = '互金'
+    total_name_dtl.loc[total_name_dtl.loc[:, '商户简称'] == '美团', '二级行业'] = '互金'
+    total_name_dtl = total_name_dtl.groupby(['商户简称', '收入所属方', '二级行业']).sum()
+    total_name_dtl = total_name_dtl.reset_index()
+    return total_name_dtl
+
+
+name_ind = total_name_ind(total_detail)
+
+
 # 透视行业数据
 def total_ind(detail):
     ind_detail = detail.groupby(['二级行业'])
@@ -288,11 +317,89 @@ def total_ind(detail):
 ind_data = total_ind(total_detail)
 
 
+# 透视交易类型
+def total_deal_tp(detail):
+    deal_tp_detail = detail.groupby(['产品'])
+    deal_tp_sum = deal_tp_detail.agg(sum)
+    deal_tp_sum = deal_tp_sum[['笔数', '金额', '手续费', '收益']]
+    deal_tp_sum.loc['总计', :] = deal_tp_sum.sum()
+    return deal_tp_sum
+
+
+deal_tp_data = total_deal_tp(total_detail)
+
+
+# 商户业务波动分析监控
+def business_anal(detail, last_detail):
+    detail = detail.loc[:, ['商户简称', '收入所属方', '笔数', '金额', '手续费', '收益']]
+    detail.loc[:, '收益率'] = detail.loc[:, '收益'] / detail.loc[:, '手续费']
+    detail.set_index(['商户简称', '收入所属方'], inplace=True)
+    last_detail = last_detail.loc[:, ['商户简称', '收入所属方', '手续费', '收益']]
+    last_detail.loc[:, '收益率'] = last_detail.loc[:, '收益'] / last_detail.loc[:, '手续费']
+    last_detail.set_index(['商户简称', '收入所属方'], inplace=True)
+    income_sort = detail.sort_values('手续费', ascending=False)
+    print('手续费排名前50商户占比', income_sort.iloc[1:51, 2].sum() / income_sort.iloc[0, 2])
+    detail = income_sort.iloc[:51, :]
+    detail = pd.merge(detail, last_detail[['手续费', '收益', '收益率']], left_index=True, right_index=True, how='left')
+    detail.columns = ['笔数', '金额', '手续费', '收益', '收益率', '前一期间手续费', '前一期间收益', '前一期间收益率']
+    detail.fillna(0, inplace=True)
+    detail.loc[:, '手续费变化'] = detail.loc[:, '手续费'] - detail.loc[:, '前一期间手续费']
+    detail.loc[:, '收益变化'] = detail.loc[:, '收益'] - detail.loc[:, '前一期间收益']
+    detail.loc[:, '手续费变化比'] = detail.loc[:, '手续费变化'] / detail.loc[:, '前一期间手续费']
+    detail.loc[:, '收益变化比'] = detail.loc[:, '收益变化'] / detail.loc[:, '前一期间收益']
+    detail.loc[:, '监控级别'] = 0
+    detail.loc[detail['手续费变化'].abs() > 10000, '监控级别'] += 1
+    detail.loc[detail['手续费变化比'].abs() > 0.1, '监控级别'] += 1
+    detail.loc[detail['收益变化'].abs() > 3000, '监控级别'] += 1
+    detail.loc[detail['收益变化比'].abs() > 0.1, '监控级别'] += 1
+    detail = detail[['手续费变化', '收益变化', '手续费变化比', '收益变化比', '收益率', '前一期间收益率', '监控级别']]
+    return detail
+
+
+def period_jud(date, path, detail):
+    if len(date) == 8:
+        last_d = (datetime.datetime.strptime(date, '%Y%m%d') + datetime.timedelta(days=-1)).strftime('%Y%m%d')
+        if date[4:6] == ('05' or '07' or '10' or '12'):
+            if date[6:8] == '31':
+                last_m = (datetime.datetime.strptime(date, '%Y%m%d') + datetime.timedelta(days=-31)).strftime('%Y%m%d')
+            else:
+                last_m = (datetime.datetime.strptime(date, '%Y%m%d') + datetime.timedelta(days=-30)).strftime('%Y%m%d')
+        elif date[4:6] == '03':
+            if date[6:8] == '29':
+                last_m = (datetime.datetime.strptime(date, '%Y%m%d') + datetime.timedelta(days=-29)).strftime('%Y%m%d')
+            elif date[6:8] == '30':
+                last_m = (datetime.datetime.strptime(date, '%Y%m%d') + datetime.timedelta(days=-30)).strftime('%Y%m%d')
+            elif date[6:8] == '31':
+                last_m = (datetime.datetime.strptime(date, '%Y%m%d') + datetime.timedelta(days=-31)).strftime('%Y%m%d')
+            else:
+                last_m = (datetime.datetime.strptime(date, '%Y%m%d') + datetime.timedelta(days=-28)).strftime('%Y%m%d')
+        else:
+            last_m = (datetime.datetime.strptime(date, '%Y%m%d') + datetime.timedelta(days=-31)).strftime('%Y%m%d')
+        last_day_detail = pd.read_excel(path + 'TLT源表汇总_{}.xlsx'.format(last_d), sheet_name='商户汇总')
+        last_month_detail = pd.read_excel(path + 'TLT源表汇总_{}.xlsx'.format(last_m), sheet_name='商户汇总')
+        anal_d = business_anal(detail, last_day_detail)
+        anal_d['环比标识'] = '日'
+        anal_d = anal_d[['环比标识', '手续费变化', '手续费变化比', '收益变化', '收益变化比', '收益率', '前一期间收益率', '监控级别']]
+        anal_m = business_anal(detail, last_month_detail)
+        anal_m['环比标识'] = '月'
+        anal_m = anal_m[['环比标识', '手续费变化', '手续费变化比', '收益变化', '收益变化比', '收益率', '前一期间收益率', '监控级别']]
+        anl_all = pd.merge(anal_d, anal_m, left_index=True, right_index=True, how='outer', sort=False)
+    else:
+        anl_all = pd.DataFrame([])
+    return anl_all
+
+
+anl_imp = period_jud(date_get, save_path, name_data)
+
+
 # 数据存入电子表格
 doc_save = pd.ExcelWriter(save_path + 'TLT源表汇总_{}.xlsx'.format(date_get))
 total_table.to_excel(doc_save, '汇总')
 name_data.to_excel(doc_save, '商户汇总')
+name_ind.to_excel(doc_save, '商户归属行业汇总')
+anl_imp.to_excel(doc_save, '商户分析')
 ind_data.to_excel(doc_save, '行业汇总')
+deal_tp_data.to_excel(doc_save, '交易类型汇总')
 total_detail.to_excel(doc_save, '明细')
 doc_save.save()
 
